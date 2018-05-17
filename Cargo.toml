@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["ChristopherKober <ChristopherKober@users.noreply.github.com>"]
 
 [dependencies]
+pest = "^1.0"
+pest_derive = "^1.0"
