@@ -1,17 +1,14 @@
-#[derive(Debug, PartialEq)]
-pub struct Fact<'a> {
-    pub pred: &'a str,
-    pub args: Vec<&'a str>,
+use std::collections::HashMap;
+
+//TODO: Make this actually something before Tuesday
+
+#[derive(Debug)]
+pub struct KnowledgeBase {
+    fact_trees : HashMap<String,Vec<Option<Box<Fact>>>>
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Rule<'a> {
-    pub lhs: Vec<Vec<&'a str>>,
-    pub rhs: Vec<&'a str>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct KB<'a> {
-    pub facts: Vec<Fact<'a>>,
-    pub rules: Vec<Rule<'a>>,
+#[derive(Debug)]
+pub struct Fact {
+    pred : String,
+    args : Vec<String>
 }

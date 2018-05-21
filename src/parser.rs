@@ -1,7 +1,27 @@
 use nom::*;
 use std::str;
 
-use knowledge_base::*;
+#[derive(Debug, PartialEq)]
+pub struct Fact<'a> {
+    pub pred: &'a str,
+    pub args: Vec<&'a str>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Rule<'a> {
+    pub lhs: Vec<Vec<&'a str>>,
+    pub rhs: Vec<&'a str>,
+}
+
+/// Return value for parser
+///
+/// Puts a knowledge base file into basic rust data structure.
+/// This is not meant to be a KB, rather a way to structure data to send to the KB
+#[derive(Debug, PartialEq)]
+pub struct KB<'a> {
+    pub facts: Vec<Fact<'a>>,
+    pub rules: Vec<Rule<'a>>,
+}
 
 named!(
     name<&[u8]>,
