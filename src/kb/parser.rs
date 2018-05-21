@@ -1,9 +1,9 @@
 use nom::*;
 use std::fs;
-use kb::knowledge_base::{Fact, Rule, KnowledgeBase, KB};
+use kb::knowledge_base::{Fact, Rule, KnowledgeBase, ParsedKnowledgeBase};
 
-pub fn parse_kb_from_file(filename: &str) -> Result<KB, String> {
-    let file = fs::read(filename).expect("test.kb not found");
+pub fn parse_kb_from_file(filename: &str) -> Result<ParsedKnowledgeBase, String> {
+    let file = fs::read(filename).expect("file not found");
 
     match kb(&file[..]) {
         Ok(tuple) => Ok(tuple.1),
@@ -65,13 +65,13 @@ named!(rule<&[u8], Rule>,
     ))
 );
 
-named!(pub kb<&[u8], KB>,
+named!(pub kb<&[u8], ParsedKnowledgeBase>,
     ws!(do_parse!(
         tag!("kb") >>
         tag!("{") >>
         facts: many1!(fact) >>
         rules: many1!(rule) >>
-        (KB {
+        (ParsedKnowledgeBase {
             facts,
             rules: rules
         })
@@ -80,7 +80,7 @@ named!(pub kb<&[u8], KB>,
 
 #[cfg(test)]
 mod parse_tests {
-    use super::{fact, kb, rule, Fact, Rule, KB, parse_kb_from_file};
+    use super::{fact, kb, rule, Fact, Rule, ParsedKnowledgeBase, parse_kb_from_file};
 
     #[test]
     fn parse_fact() {
@@ -116,7 +116,7 @@ mod parse_tests {
             kb(&b"kb {\nfact: (isa cube box)\nfact: (isa box container)\nrule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z)\n}"[..]),
             Ok((
                 &b"}"[..],
-                KB {
+                ParsedKnowledgeBase {
                     facts: vec![Fact {
                         pred: String::from("isa"),
                         args: vec!["cube","box"].into_iter().map(|w| String::from(w)).collect()
@@ -137,7 +137,7 @@ mod parse_tests {
     fn parse_from_file() {
         assert_eq!(
             parse_kb_from_file("src/test.kb"),
-            Ok(KB {
+            Ok(ParsedKnowledgeBase {
                 facts: vec![Fact {
                     pred: String::from("isa"),
                     args: vec!["cube","box"].into_iter().map(|w| String::from(w)).collect()

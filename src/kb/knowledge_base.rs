@@ -5,12 +5,13 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq)]
 pub struct KnowledgeBase {
     pub facts: HashMap<String, Vec<Fact>>,
-    pub rules: HashMap<String, Vec<Rule>>
+    pub rules: Vec<Rule>
 }
 
-// temporary
+// First parse into this struct, then post process
+// data into KnowledgeBase.
 #[derive(Debug, PartialEq)]
-pub struct KB {
+pub struct ParsedKnowledgeBase {
     pub facts: Vec<Fact>,
     pub rules: Vec<Rule>
 }
