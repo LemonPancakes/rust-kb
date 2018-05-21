@@ -1,23 +1,7 @@
 use nom::*;
 use std::str;
 
-#[derive(Debug, PartialEq)]
-pub struct Fact<'a> {
-    pub pred: &'a str,
-    pub args: Vec<&'a str>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Rule<'a> {
-    pub lhs: Vec<Vec<&'a str>>,
-    pub rhs: Vec<&'a str>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct KB<'a> {
-    pub facts: Vec<Fact<'a>>,
-    pub rules: Vec<Rule<'a>>,
-}
+use knowledge_base::*;
 
 named!(
     name<&[u8]>,
@@ -30,7 +14,7 @@ named!(
 named!(
     var<&[u8]>,
     recognize!(pair!(
-        take_while1!(|c| c == '?' as u8),
+        take_while1!(|c| c == b'?'),
         take_while!(is_alphanumeric)
     ))
 );
@@ -73,7 +57,7 @@ named!(rule<&[u8], Rule>,
     ))
 );
 
-named!(kb<&[u8], KB>,
+named!(pub kb<&[u8], KB>,
     ws!(do_parse!(
         facts: many1!(fact) >>
         rules: many1!(rule) >>
