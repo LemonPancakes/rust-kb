@@ -21,19 +21,19 @@ pub struct Predicate {
     pub name: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Fact {
-    pub pred: String,      // TODO Rc<Predicate> (?)
-    pub args: Vec<String>, // TODO Vec<Rc<Argument>> (?)
+    pub pred: String,      // TODO Rc<Predicate> (maybe?)
+    pub args: Vec<String>, // TODO Vec<Rc<Argument>> (maybe?)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Rule {
     pub lhs: Vec<Vec<String>>,
     pub rhs: Vec<String>,
 }
 
-// please tell me there is a better way to do this...
+// TODO please tell me there is a better way to do this...!
 pub enum StatementType {
     Fact,
     Rule,
@@ -54,12 +54,14 @@ impl Statement for Rule {
 
 #[derive(Debug, PartialEq)]
 pub struct KnowledgeBase {
-    pub facts: Vec<Fact>, // TODO HashMap<Rc<Predicate>, Vec<Rc<Argument>>> (?)
+    pub facts: Vec<Fact>,   // TODO HashMap<Rc<Predicate>, Vec<Rc<Argument>>> (maybe?)
+                            // at least should be HashMap<String, Vec<String>>
     pub rules: Vec<Rule>,
 }
 
-// most of these functions will need to be reimplemented
+//TODO most of these functions will need to be reimplemented
 // based on new KnowledgeBase data structure
+#[allow(dead_code)]
 impl KnowledgeBase {
     pub fn new(facts: Vec<Fact>, rules: Vec<Rule>) -> KnowledgeBase {
         KnowledgeBase { facts, rules }
@@ -71,6 +73,8 @@ impl KnowledgeBase {
         KnowledgeBase::new(pkb.facts, pkb.rules)
     }
 
+    // TODO I couldn't figure out a good way to check if statements are Rules or Facts
+    // then cast and pass them:
     pub fn assert<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         Ok(())
     }
@@ -79,8 +83,15 @@ impl KnowledgeBase {
         Ok(())
     }
 
-    pub fn ask<T>(&self, statement: T) -> Result<bool, String> {
+    pub fn ask(&self, fact: &Fact) -> Result<bool, String> {
+        if self.contains_fact(fact) {
+            return Ok(true);
+        }
+
+        // TODO missing inference for rules
+
         Ok(false)
+
     }
 
     fn add_fact(&mut self, fact: Fact) -> Result<(), String> {
@@ -111,5 +122,61 @@ impl KnowledgeBase {
 
     fn contains_rule(&self, rule: &Rule) -> bool {
         self.rules.contains(rule)
+    }
+}
+
+#[allow(unused_must_use)]
+#[cfg(test)]
+mod knowledge_base_tests {
+    use super::*;
+
+    #[test]
+    fn test_add_fact() {
+        let mut kb = KnowledgeBase::new(vec![], vec![]);
+        let new_fact = Fact {
+            pred: "isa".to_string(),
+            args: vec!["Bob".to_string(), "boy".to_string()]
+        };
+        kb.add_fact(new_fact.clone());
+
+        assert_eq!(kb.contains_fact(&new_fact), true);
+    }
+
+    #[test]
+    fn test_remove_fact() {
+        let new_fact = Fact {
+            pred: "isa".to_string(),
+            args: vec!["Bob".to_string(), "boy".to_string()]
+        };
+        let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![]);
+        kb.remove_fact(&new_fact);
+
+        assert_eq!(kb.contains_fact(&new_fact), false);
+        assert_eq!(kb.facts.is_empty(), true);
+    }
+
+    #[test]
+    fn test_ask_fact_already_in_kb() {
+        let new_fact = Fact {
+            pred: "isa".to_string(),
+            args: vec!["Bob".to_string(), "boy".to_string()]
+        };
+        let kb = KnowledgeBase::new(vec![new_fact.clone()], vec![]);
+        assert_eq!(kb.ask(&new_fact), Ok(true))
+    }
+
+    #[test]
+    fn test_ask_fact_not_in_fb() {
+        let new_fact = Fact {
+            pred: "isa".to_string(),
+            args: vec!["Bob".to_string(), "boy".to_string()]
+        };
+        let kb = KnowledgeBase::new(vec![], vec![]);
+        assert_eq!(kb.ask(&new_fact), Ok(false));
+    }
+
+    #[test]
+    fn test_ask_fact_inferred_from_rule_in_kb() {
+
     }
 }
