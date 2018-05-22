@@ -1,5 +1,3 @@
-
-
 // TODO First parse into this struct, then post process
 // data into KnowledgeBase. Or maybe we don't need
 // this at all and we can parse directly into KnowledgeBase
@@ -38,7 +36,7 @@ pub struct Rule {
 // please tell me there is a better way to do this...
 pub enum StatementType {
     Fact,
-    Rule
+    Rule,
 }
 pub trait Statement {
     fn stype(&self) -> StatementType;
@@ -60,6 +58,8 @@ pub struct KnowledgeBase {
     pub rules: Vec<Rule>,
 }
 
+// most of these functions will need to be reimplemented
+// based on new KnowledgeBase data structure
 impl KnowledgeBase {
     pub fn new(facts: Vec<Fact>, rules: Vec<Rule>) -> KnowledgeBase {
         KnowledgeBase { facts, rules }
@@ -71,31 +71,45 @@ impl KnowledgeBase {
         KnowledgeBase::new(pkb.facts, pkb.rules)
     }
 
-    pub fn ask(&self) -> Result<bool, String> {
-        Ok(false)
-    }
-
-    pub fn add_fact(&mut self, fact: Fact) -> Result<(), String> {
-        Ok(())
-    }
-
-    pub fn remove_fact(&mut self, fact: Fact) -> Result<(), String> {
-        Ok(())
-    }
-
-    pub fn add_rule(&mut self, rule: Rule) -> Result<(), String> {
-        Ok(())
-    }
-
-    pub fn remove_rule(&mut self, rule: Rule) -> Result<(), String> {
-        Ok(())
-    }
-
     pub fn assert<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         Ok(())
     }
 
     pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         Ok(())
+    }
+
+    pub fn ask<T>(&self, statement: T) -> Result<bool, String> {
+        Ok(false)
+    }
+
+    fn add_fact(&mut self, fact: Fact) -> Result<(), String> {
+        self.facts.push(fact);
+        Ok(())
+    }
+
+    fn remove_fact(&mut self, fact: &Fact) -> Result<(), String> {
+        let index = self.facts.iter().position(|x| *x == *fact).unwrap();
+        self.facts.remove(index);
+        Ok(())
+    }
+
+    fn add_rule(&mut self, rule: Rule) -> Result<(), String> {
+        self.rules.push(rule);
+        Ok(())
+    }
+
+    fn remove_rule(&mut self, rule: Rule) -> Result<(), String> {
+        let index = self.rules.iter().position(|x| *x == rule).unwrap();
+        self.rules.remove(index);
+        Ok(())
+    }
+
+    fn contains_fact(&self, fact: &Fact) -> bool {
+        self.facts.contains(fact)
+    }
+
+    fn contains_rule(&self, rule: &Rule) -> bool {
+        self.rules.contains(rule)
     }
 }
