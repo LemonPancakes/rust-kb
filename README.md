@@ -1,3 +1,7 @@
+| master | develop |
+|:-:|:-:|
+| [![Build Status (master)](https://travis-ci.org/LemonPancakes/Rust-KB.svg?branch=master)](https://travis-ci.org/LemonPancakes/Rust-KB) | [![Build Status (develop)](https://travis-ci.org/LemonPancakes/Rust-KB.svg?branch=develop)](https://travis-ci.org/LemonPancakes/Rust-KB) |
+
 # Rust-KB
 
 An implementation of knowledge base system library in Rust. We can initiate a knowledge base class from an input kb file, and then perform any queries/planning on the kb. Alternatively, users can instantiate a kb, then add rules and make queries in real time.
