@@ -1,6 +1,6 @@
 use nom::*;
 use std::fs;
-use kb::knowledge_base::{Fact, Rule, KnowledgeBase, ParsedKnowledgeBase};
+use kb::knowledge_base::{Fact, Rule, ParsedKnowledgeBase};
 
 pub fn parse_kb_from_file(filename: &str) -> Result<ParsedKnowledgeBase, String> {
     let file = fs::read(filename).expect("file not found");
