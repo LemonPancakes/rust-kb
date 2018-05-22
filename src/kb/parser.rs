@@ -1,13 +1,13 @@
+use kb::knowledge_base::{Fact, KnowledgeBase, ParsedKnowledgeBase, Rule};
 use nom::*;
 use std::fs;
-use kb::knowledge_base::{Fact, Rule, ParsedKnowledgeBase};
 
-pub fn parse_kb_from_file(filename: &str) -> Result<ParsedKnowledgeBase, String> {
+pub fn parse_kb_from_file(filename: &str) -> Result<KnowledgeBase, String> {
     let file = fs::read(filename).expect("file not found");
 
     match kb(&file[..]) {
-        Ok(tuple) => Ok(tuple.1),
-        Err(_) => Err(String::from("Failed to parse kb from file"))
+        Ok(tuple) => Ok(KnowledgeBase::from(tuple.1)),
+        Err(_) => Err(String::from("Failed to parse kb from file")),
     }
 }
 
@@ -80,7 +80,7 @@ named!(pub kb<&[u8], ParsedKnowledgeBase>,
 
 #[cfg(test)]
 mod parse_tests {
-    use super::{fact, kb, rule, Fact, Rule, ParsedKnowledgeBase, parse_kb_from_file};
+    use super::{fact, kb, parse_kb_from_file, rule, Fact, KnowledgeBase, ParsedKnowledgeBase, Rule};
 
     #[test]
     fn parse_fact() {
@@ -90,7 +90,10 @@ mod parse_tests {
                 &b"eol"[..],
                 Fact {
                     pred: String::from("isa"),
-                    args: vec!["cube", "box"].into_iter().map(|w| String::from(w)).collect(),
+                    args: vec!["cube", "box"]
+                        .into_iter()
+                        .map(|w| String::from(w))
+                        .collect(),
                 }
             ))
         );
@@ -103,8 +106,14 @@ mod parse_tests {
             Ok((
                 &b"eol"[..],
                 Rule {
-                    lhs: vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]].into_iter().map(|lst| lst.into_iter().map(|w| String::from(w)).collect()).collect(),
-                    rhs: vec!["inst", "?x", "?z"].into_iter().map(|w| String::from(w)).collect(),
+                    lhs: vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
+                        .into_iter()
+                        .map(|lst| lst.into_iter().map(|w| String::from(w)).collect())
+                        .collect(),
+                    rhs: vec!["inst", "?x", "?z"]
+                        .into_iter()
+                        .map(|w| String::from(w))
+                        .collect(),
                 }
             ))
         )
@@ -136,19 +145,36 @@ mod parse_tests {
     #[test]
     fn parse_from_file() {
         assert_eq!(
-            parse_kb_from_file("src/test.kb"),
-            Ok(ParsedKnowledgeBase {
-                facts: vec![Fact {
-                    pred: String::from("isa"),
-                    args: vec!["cube","box"].into_iter().map(|w| String::from(w)).collect()
-                }, Fact {
-                    pred: String::from("isa"),
-                    args: vec!["box","container"].into_iter().map(|w| String::from(w)).collect()
-                }],
-                rules: vec![Rule {
-                    lhs: vec![vec!["inst","?x","?y"],vec!["isa","?y","?z"]].into_iter().map(|lst| lst.into_iter().map(|w| String::from(w)).collect()).collect(),
-                    rhs: vec!["inst", "?x", "?z"].into_iter().map(|w| String::from(w)).collect()
-                }]
+            parse_kb_from_file("test/test.kb"),
+            Ok(KnowledgeBase {
+                facts: vec![
+                    Fact {
+                        pred: String::from("isa"),
+                        args: vec!["cube", "box"]
+                            .into_iter()
+                            .map(|w| String::from(w))
+                            .collect(),
+                    },
+                    Fact {
+                        pred: String::from("isa"),
+                        args: vec!["box", "container"]
+                            .into_iter()
+                            .map(|w| String::from(w))
+                            .collect(),
+                    },
+                ],
+                rules: vec![
+                    Rule {
+                        lhs: vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
+                            .into_iter()
+                            .map(|lst| lst.into_iter().map(|w| String::from(w)).collect())
+                            .collect(),
+                        rhs: vec!["inst", "?x", "?z"]
+                            .into_iter()
+                            .map(|w| String::from(w))
+                            .collect(),
+                    },
+                ],
             })
         )
     }
