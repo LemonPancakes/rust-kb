@@ -34,10 +34,7 @@ named!(fact<&[u8], Fact>,
         pred: alpha >>
         args: many1!(map!(name, |c| String::from_utf8(c.to_vec()).unwrap())) >>
         tag!(")") >>
-        (Fact {
-            pred: String::from_utf8(pred.to_vec()).unwrap(),
-            args: args
-        })
+        (Fact::new(String::from_utf8(pred.to_vec()).unwrap(), args))
     ))
 );
 
@@ -58,10 +55,7 @@ named!(rule<&[u8], Rule>,
         tag!(")") >>
         tag!("->") >>
         rhs: rule_part >>
-        (Rule {
-            lhs: lhs,
-            rhs: rhs
-        })
+        (Rule::new(lhs, rhs))
     ))
 );
 
@@ -71,10 +65,7 @@ named!(pub kb<&[u8], ParsedKnowledgeBase>,
         tag!("{") >>
         facts: many1!(fact) >>
         rules: many1!(rule) >>
-        (ParsedKnowledgeBase {
-            facts,
-            rules: rules
-        })
+        (ParsedKnowledgeBase { facts, rules })
     ))
 );
 
@@ -88,13 +79,13 @@ mod parse_tests {
             fact(&b"fact: (isa cube box)eol"[..]),
             Ok((
                 &b"eol"[..],
-                Fact {
-                    pred: String::from("isa"),
-                    args: vec!["cube", "box"]
+                Fact::new(
+                    String::from("isa"),
+                    vec!["cube", "box"]
                         .into_iter()
                         .map(|w| String::from(w))
                         .collect(),
-                }
+                )
             ))
         );
     }
@@ -105,16 +96,16 @@ mod parse_tests {
             rule(&b"rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z)eol"[..]),
             Ok((
                 &b"eol"[..],
-                Rule {
-                    lhs: vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
+                Rule::new(
+                    vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
                         .into_iter()
                         .map(|lst| lst.into_iter().map(|w| String::from(w)).collect())
                         .collect(),
-                    rhs: vec!["inst", "?x", "?z"]
+                    vec!["inst", "?x", "?z"]
                         .into_iter()
                         .map(|w| String::from(w))
                         .collect(),
-                }
+                )
             ))
         )
     }
@@ -126,17 +117,17 @@ mod parse_tests {
             Ok((
                 &b"}"[..],
                 ParsedKnowledgeBase {
-                    facts: vec![Fact {
-                        pred: String::from("isa"),
-                        args: vec!["cube","box"].into_iter().map(|w| String::from(w)).collect()
-                    }, Fact {
-                        pred: String::from("isa"),
-                        args: vec!["box","container"].into_iter().map(|w| String::from(w)).collect()
-                    }],
-                    rules: vec![Rule {
-                        lhs: vec![vec!["inst","?x","?y"],vec!["isa","?y","?z"]].into_iter().map(|lst| lst.into_iter().map(|w| String::from(w)).collect()).collect(),
-                        rhs: vec!["inst", "?x", "?z"].into_iter().map(|w| String::from(w)).collect()
-                    }]
+                    facts: vec![Fact::new(
+                        String::from("isa"),
+                        vec!["cube","box"].into_iter().map(|w| String::from(w)).collect()
+                    ), Fact::new(
+                        String::from("isa"),
+                        vec!["box","container"].into_iter().map(|w| String::from(w)).collect()
+                    )],
+                    rules: vec![Rule::new(
+                        vec![vec!["inst","?x","?y"],vec!["isa","?y","?z"]].into_iter().map(|lst| lst.into_iter().map(|w| String::from(w)).collect()).collect(),
+                        vec!["inst", "?x", "?z"].into_iter().map(|w| String::from(w)).collect()
+                    )]
                 }
             ))
         )
@@ -146,36 +137,36 @@ mod parse_tests {
     fn parse_from_file() {
         assert_eq!(
             parse_kb_from_file("test/test.kb"),
-            Ok(KnowledgeBase {
-                facts: vec![
-                    Fact {
-                        pred: String::from("isa"),
-                        args: vec!["cube", "box"]
+            Ok(KnowledgeBase::new(
+                vec![
+                    Fact::new(
+                        String::from("isa"),
+                        vec!["cube", "box"]
                             .into_iter()
                             .map(|w| String::from(w))
                             .collect(),
-                    },
-                    Fact {
-                        pred: String::from("isa"),
-                        args: vec!["box", "container"]
+                    ),
+                    Fact::new(
+                        String::from("isa"),
+                        vec!["box", "container"]
                             .into_iter()
                             .map(|w| String::from(w))
                             .collect(),
-                    },
+                    ),
                 ],
-                rules: vec![
-                    Rule {
-                        lhs: vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
+                vec![
+                    Rule::new(
+                        vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
                             .into_iter()
                             .map(|lst| lst.into_iter().map(|w| String::from(w)).collect())
                             .collect(),
-                        rhs: vec!["inst", "?x", "?z"]
+                        vec!["inst", "?x", "?z"]
                             .into_iter()
                             .map(|w| String::from(w))
                             .collect(),
-                    },
+                    ),
                 ],
-            })
+            ))
         )
     }
 }

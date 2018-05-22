@@ -27,10 +27,22 @@ pub struct Fact {
     pub args: Vec<String>, // TODO Vec<Rc<Argument>> (maybe?)
 }
 
+impl Fact {
+    pub fn new(pred: String, args: Vec<String>) -> Fact {
+        Fact { pred, args }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rule {
     pub lhs: Vec<Vec<String>>,
     pub rhs: Vec<String>,
+}
+
+impl Rule {
+    pub fn new(lhs: Vec<Vec<String>>, rhs: Vec<String>) -> Rule {
+        Rule { lhs, rhs }
+    }
 }
 
 // TODO please tell me there is a better way to do this...!
@@ -54,8 +66,8 @@ impl Statement for Rule {
 
 #[derive(Debug, PartialEq)]
 pub struct KnowledgeBase {
-    pub facts: Vec<Fact>,   // TODO HashMap<Rc<Predicate>, Vec<Rc<Argument>>> (maybe?)
-                            // at least should be HashMap<String, Vec<String>>
+    pub facts: Vec<Fact>, // TODO HashMap<Rc<Predicate>, Vec<Rc<Argument>>> (maybe?)
+    // at least should be HashMap<String, Vec<String>>
     pub rules: Vec<Rule>,
 }
 
@@ -91,7 +103,6 @@ impl KnowledgeBase {
         // TODO missing inference for rules
 
         Ok(false)
-
     }
 
     fn add_fact(&mut self, fact: Fact) -> Result<(), String> {
@@ -133,10 +144,10 @@ mod knowledge_base_tests {
     #[test]
     fn test_add_fact() {
         let mut kb = KnowledgeBase::new(vec![], vec![]);
-        let new_fact = Fact {
-            pred: "isa".to_string(),
-            args: vec!["Bob".to_string(), "boy".to_string()]
-        };
+        let new_fact = Fact::new(
+            "isa".to_string(),
+            vec!["Bob".to_string(), "boy".to_string()],
+        );
         kb.add_fact(new_fact.clone());
 
         assert_eq!(kb.contains_fact(&new_fact), true);
@@ -144,10 +155,10 @@ mod knowledge_base_tests {
 
     #[test]
     fn test_remove_fact() {
-        let new_fact = Fact {
-            pred: "isa".to_string(),
-            args: vec!["Bob".to_string(), "boy".to_string()]
-        };
+        let new_fact = Fact::new(
+            "isa".to_string(),
+            vec!["Bob".to_string(), "boy".to_string()],
+        );
         let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![]);
         kb.remove_fact(&new_fact);
 
@@ -157,26 +168,24 @@ mod knowledge_base_tests {
 
     #[test]
     fn test_ask_fact_already_in_kb() {
-        let new_fact = Fact {
-            pred: "isa".to_string(),
-            args: vec!["Bob".to_string(), "boy".to_string()]
-        };
+        let new_fact = Fact::new(
+            "isa".to_string(),
+            vec!["Bob".to_string(), "boy".to_string()],
+        );
         let kb = KnowledgeBase::new(vec![new_fact.clone()], vec![]);
         assert_eq!(kb.ask(&new_fact), Ok(true))
     }
 
     #[test]
     fn test_ask_fact_not_in_fb() {
-        let new_fact = Fact {
-            pred: "isa".to_string(),
-            args: vec!["Bob".to_string(), "boy".to_string()]
-        };
+        let new_fact = Fact::new(
+            "isa".to_string(),
+            vec!["Bob".to_string(), "boy".to_string()],
+        );
         let kb = KnowledgeBase::new(vec![], vec![]);
         assert_eq!(kb.ask(&new_fact), Ok(false));
     }
 
     #[test]
-    fn test_ask_fact_inferred_from_rule_in_kb() {
-
-    }
+    fn test_ask_fact_inferred_from_rule_in_kb() {}
 }
