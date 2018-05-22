@@ -1,6 +1,6 @@
 | master | develop |
 |:-:|:-:|
-| [![Build Status (master)](https://travis-ci.org/LemonPancakes/Rust-KB.svg?branch=master)](https://travis-ci.org/LemonPancakes/Rust-KB) | [![Build Status (develop)](https://travis-ci.org/LemonPancakes/Rust-KB.svg?branch=develop)](https://travis-ci.org/LemonPancakes/Rust-KB) |
+| [![Build Status (master)](https://travis-ci.org/LemonPancakes/rust-kb.svg?branch=master)](https://travis-ci.org/LemonPancakes/rust-kb) | [![Build Status (develop)](https://travis-ci.org/LemonPancakes/rust-kb.svg?branch=develop)](https://travis-ci.org/LemonPancakes/rust-kb) |
 
 # Rust-KB
 
