@@ -16,8 +16,8 @@ We wanted to make something that wasnâ€™t done by many others yet. There doesnâ€
 
 * KB, Rule, Fact classes
 * Add and Retract for rules and facts
+* Manage inferences after insertion/retraction
 * Query for KB
-* Object hierarchy
 
 ##### Nice-to-Haves
 
@@ -37,21 +37,21 @@ Efficiency (and maybe concurrency) will likely be the most challenging but most 
 An example of a meld kb file:
 
 ```
-(isa burger Food)
-(isa John Person)
+fact: (isa box container)
+fact: (isa toy object)
 
-(action (eat ?person ?food) =>
-  (type ?person Person)
-  (type ?food Food))
+rule: ((isa ?x object) (isa ?y container)) ->
+       (contains ?y ?x)
 ```
 
-We'd take in something of this form and enable queries on the kb:
+We'd take in something of this form and enable asks/queries on the kb:
 
 ```
-(eat John ?x) -> ((?x . burger))
+kb.ask("(contains box toy)") -> true
+kb.query("(contains ?x toy)") -> ((?x, box))
 ```
 
-Which could return all possible bindings to ?x. The exact Rust representation remains to be figured out, but this is the general idea of what we want to accomplish.
+Which could return whether the statement is in the kb, or all possible bindings to variables - ?x in this case. The exact Rust representation remains to be figured out, but this is the general idea of what we want to accomplish.
 
 ## Team Members
 
