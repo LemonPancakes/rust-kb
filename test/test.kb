@@ -1,0 +1,6 @@
+kb {
+  fact: (isa cube box)
+  fact: (isa box container)
+
+  rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z)
+}
