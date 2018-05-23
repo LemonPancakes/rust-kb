@@ -1,3 +1,5 @@
+use std::mem;
+
 // TODO First parse into this struct, then post process
 // data into KnowledgeBase. Or maybe we don't need
 // this at all and we can parse directly into KnowledgeBase
@@ -51,16 +53,23 @@ pub enum StatementType {
     Rule,
 }
 pub trait Statement {
-    fn stype(&self) -> StatementType;
+    fn to_fact(&self) -> Option<&Fact>;
+    fn to_rule(&self) -> Option<&Rule>;
 }
 impl Statement for Fact {
-    fn stype(&self) -> StatementType {
-        StatementType::Fact
+    fn to_fact(&self) -> Option<&Fact> {
+        Some(self)
+    }
+    fn to_rule(&self) -> Option<&Rule> {
+        None
     }
 }
 impl Statement for Rule {
-    fn stype(&self) -> StatementType {
-        StatementType::Rule
+    fn to_fact(&self) -> Option<&Fact> {
+        None
+    }
+    fn to_rule(&self) -> Option<&Rule> {
+        Some(self)
     }
 }
 
@@ -95,9 +104,19 @@ impl KnowledgeBase {
         Ok(())
     }
 
-    pub fn ask(&self, fact: &Fact) -> Result<bool, String> {
-        if self.contains_fact(fact) {
-            return Ok(true);
+    pub fn ask<T: Statement>(&self, statement: &T) -> Result<bool, String> {
+        match statement.to_fact() {
+            Some(fact) => {
+                if self.contains_fact(fact) {
+                    return Ok(true);
+                }
+            },
+            None => {
+                let rule = statement.to_rule().unwrap();
+                if self.contains_rule(rule) {
+                    return Ok(true);
+                }
+            }
         }
 
         // TODO missing inference for rules
@@ -106,23 +125,35 @@ impl KnowledgeBase {
     }
 
     fn add_fact(&mut self, fact: Fact) -> Result<(), String> {
+        if self.contains_fact(&fact) {
+            return Err(String::from("fact already in kb"));
+        }
         self.facts.push(fact);
         Ok(())
     }
 
     fn remove_fact(&mut self, fact: &Fact) -> Result<(), String> {
+        if !self.contains_fact(fact) {
+            return Err(String::from("fact does not exist in kb"));
+        }
         let index = self.facts.iter().position(|x| *x == *fact).unwrap();
         self.facts.remove(index);
         Ok(())
     }
 
     fn add_rule(&mut self, rule: Rule) -> Result<(), String> {
+        if self.contains_rule(&rule) {
+            return Err(String::from("rule already in kb"));
+        }
         self.rules.push(rule);
         Ok(())
     }
 
-    fn remove_rule(&mut self, rule: Rule) -> Result<(), String> {
-        let index = self.rules.iter().position(|x| *x == rule).unwrap();
+    fn remove_rule(&mut self, rule: &Rule) -> Result<(), String> {
+        if !self.contains_rule(rule) {
+            return Err(String::from("rule does not exist in kb"));
+        }
+        let index = self.rules.iter().position(|x| *x == *rule).unwrap();
         self.rules.remove(index);
         Ok(())
     }
@@ -184,6 +215,16 @@ mod knowledge_base_tests {
         );
         let kb = KnowledgeBase::new(vec![], vec![]);
         assert_eq!(kb.ask(&new_fact), Ok(false));
+    }
+
+    #[test]
+    fn test_ask_rule_already_in_kb() {
+        let new_rule = Rule::new(
+            vec![vec!["isa".to_string(), "bob".to_string()]],
+            vec!["bob".to_string(), "man".to_string()],
+        );
+        let kb = KnowledgeBase::new(vec![], vec![new_rule.clone()]);
+        assert_eq!(kb.ask(&new_rule), Ok(true))
     }
 
     #[test]
