@@ -47,28 +47,23 @@ impl Rule {
     }
 }
 
-// TODO please tell me there is a better way to do this...!
-pub enum StatementType {
-    Fact,
-    Rule,
-}
 pub trait Statement {
-    fn to_fact(&self) -> Option<&Fact>;
-    fn to_rule(&self) -> Option<&Rule>;
+    fn to_fact(self) -> Option<Fact>;
+    fn to_rule(self) -> Option<Rule>;
 }
 impl Statement for Fact {
-    fn to_fact(&self) -> Option<&Fact> {
+    fn to_fact(self) -> Option<Fact> {
         Some(self)
     }
-    fn to_rule(&self) -> Option<&Rule> {
+    fn to_rule(self) -> Option<Rule> {
         None
     }
 }
 impl Statement for Rule {
-    fn to_fact(&self) -> Option<&Fact> {
+    fn to_fact(self) -> Option<Fact> {
         None
     }
-    fn to_rule(&self) -> Option<&Rule> {
+    fn to_rule(self) -> Option<Rule> {
         Some(self)
     }
 }
@@ -94,33 +89,35 @@ impl KnowledgeBase {
         KnowledgeBase::new(pkb.facts, pkb.rules)
     }
 
-    // TODO I couldn't figure out a good way to check if statements are Rules or Facts
-    // then cast and pass them:
-    pub fn assert<T: Statement>(&mut self, statement: T) -> Result<(), String> {
-        Ok(())
-    }
-
-    pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
-        Ok(())
-    }
-
-    pub fn ask<T: Statement>(&self, statement: &T) -> Result<bool, String> {
+    // TODO do inference;
+    pub fn assert<T: Statement + Copy>(&mut self, statement: T) -> Result<(), String> {
         match statement.to_fact() {
             Some(fact) => {
-                if self.contains_fact(fact) {
-                    return Ok(true);
-                }
+                return self.add_fact(fact);
             },
             None => {
                 let rule = statement.to_rule().unwrap();
-                if self.contains_rule(rule) {
-                    return Ok(true);
-                }
+                return self.add_rule(rule);
             }
         }
+    }
 
-        // TODO missing inference for rules
+    pub fn retract<T: Statement + Copy>(&mut self, statement: T) -> Result<(), String> {
+        match statement.to_fact() {
+            Some(fact) => {
+                return self.remove_fact(&fact);
+            },
+            None => {
+                let rule = statement.to_rule().unwrap();
+                return self.remove_rule(&rule);
+            }
+        }
+    }
 
+    pub fn ask(&self, fact: &Fact) -> Result<bool, String> {
+        if self.contains_fact(fact) {
+            return Ok(true);
+        }
         Ok(false)
     }
 
@@ -215,16 +212,6 @@ mod knowledge_base_tests {
         );
         let kb = KnowledgeBase::new(vec![], vec![]);
         assert_eq!(kb.ask(&new_fact), Ok(false));
-    }
-
-    #[test]
-    fn test_ask_rule_already_in_kb() {
-        let new_rule = Rule::new(
-            vec![vec!["isa".to_string(), "bob".to_string()]],
-            vec!["bob".to_string(), "man".to_string()],
-        );
-        let kb = KnowledgeBase::new(vec![], vec![new_rule.clone()]);
-        assert_eq!(kb.ask(&new_rule), Ok(true))
     }
 
     #[test]
