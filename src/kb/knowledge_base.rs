@@ -1,4 +1,5 @@
 use std::mem;
+use kb::symbols::{Symbol, SymbolTable};
 
 // TODO First parse into this struct, then post process
 // data into KnowledgeBase. Or maybe we don't need
@@ -13,12 +14,12 @@ pub struct ParsedKnowledgeBase {
 // (Argument, Predicate) to avoid
 // having so many copies of the same data
 // If not, just delete.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Argument {
     pub name: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Predicate {
     pub name: String,
 }

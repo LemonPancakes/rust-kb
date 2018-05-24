@@ -1,5 +1,7 @@
+extern crate nom;
+
 use kb::knowledge_base::{Fact, KnowledgeBase, ParsedKnowledgeBase, Rule};
-use nom::*;
+use self::nom::*;
 use std::fs;
 
 pub fn parse_kb_from_file(filename: &str) -> Result<KnowledgeBase, String> {

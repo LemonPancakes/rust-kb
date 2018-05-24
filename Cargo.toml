@@ -7,3 +7,4 @@ authors = ["ChristopherKober <ChristopherKober@users.noreply.github.com>"]
 pest = "^1.0"
 pest_derive = "^1.0"
 nom = "^4.0"
+weak-table = { git = "https://github.com/tov/weak-table-rs" }
