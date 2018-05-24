@@ -1,4 +1,3 @@
-use std::mem;
 use kb::symbols::{Symbol, SymbolTable};
 
 // TODO First parse into this struct, then post process
@@ -69,25 +68,31 @@ impl Statement for Rule {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct KnowledgeBase {
     pub facts: Vec<Fact>, // TODO HashMap<Rc<Predicate>, Vec<Rc<Argument>>> (maybe?)
     // at least should be HashMap<String, Vec<String>>
     pub rules: Vec<Rule>,
+    symbols: SymbolTable
+}
+
+impl PartialEq for KnowledgeBase {
+    fn eq(&self, other: &KnowledgeBase) -> bool {
+        self.facts == other.facts && self.rules == other.rules
+    }
 }
 
 //TODO most of these functions will need to be reimplemented
 // based on new KnowledgeBase data structure
 #[allow(dead_code)]
 impl KnowledgeBase {
-    pub fn new(facts: Vec<Fact>, rules: Vec<Rule>) -> KnowledgeBase {
-        KnowledgeBase { facts, rules }
+    pub fn new(facts: Vec<Fact>, rules: Vec<Rule>, symbols: SymbolTable) -> KnowledgeBase {
+        KnowledgeBase { facts, rules, symbols }
     }
 
     pub fn from(pkb: ParsedKnowledgeBase) -> KnowledgeBase {
-        // any post-processing like organizing into HashMap or whatever
-        // can be done here
-        KnowledgeBase::new(pkb.facts, pkb.rules)
+        // Build SymbolTable
+        KnowledgeBase::new(pkb.facts, pkb.rules, SymbolTable::new())
     }
 
     // TODO do inference;
@@ -172,7 +177,7 @@ mod knowledge_base_tests {
 
     #[test]
     fn test_add_fact() {
-        let mut kb = KnowledgeBase::new(vec![], vec![]);
+        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
         let new_fact = Fact::new(
             "isa".to_string(),
             vec!["Bob".to_string(), "boy".to_string()],
@@ -188,7 +193,7 @@ mod knowledge_base_tests {
             "isa".to_string(),
             vec!["Bob".to_string(), "boy".to_string()],
         );
-        let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![]);
+        let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], SymbolTable::new());
         kb.remove_fact(&new_fact);
 
         assert_eq!(kb.contains_fact(&new_fact), false);
@@ -201,7 +206,7 @@ mod knowledge_base_tests {
             "isa".to_string(),
             vec!["Bob".to_string(), "boy".to_string()],
         );
-        let kb = KnowledgeBase::new(vec![new_fact.clone()], vec![]);
+        let kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], SymbolTable::new());
         assert_eq!(kb.ask(&new_fact), Ok(true))
     }
 
@@ -211,7 +216,7 @@ mod knowledge_base_tests {
             "isa".to_string(),
             vec!["Bob".to_string(), "boy".to_string()],
         );
-        let kb = KnowledgeBase::new(vec![], vec![]);
+        let kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
         assert_eq!(kb.ask(&new_fact), Ok(false));
     }
 

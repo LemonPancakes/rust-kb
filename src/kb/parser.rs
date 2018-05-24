@@ -73,6 +73,7 @@ named!(pub kb<&[u8], ParsedKnowledgeBase>,
 
 #[cfg(test)]
 mod parse_tests {
+    use kb::symbols::SymbolTable;
     use super::{fact, kb, parse_kb_from_file, rule, Fact, KnowledgeBase, ParsedKnowledgeBase, Rule};
 
     #[test]
@@ -168,6 +169,7 @@ mod parse_tests {
                             .collect(),
                     ),
                 ],
+                SymbolTable::new()
             ))
         )
     }
