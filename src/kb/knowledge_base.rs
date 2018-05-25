@@ -1,13 +1,5 @@
+use kb::parser::{ParsedFact, ParsedKnowledgeBase, ParsedRule};
 use kb::symbols::{Symbol, SymbolTable};
-
-// TODO First parse into this struct, then post process
-// data into KnowledgeBase. Or maybe we don't need
-// this at all and we can parse directly into KnowledgeBase
-#[derive(Debug, PartialEq)]
-pub struct ParsedKnowledgeBase {
-    pub facts: Vec<Fact>,
-    pub rules: Vec<Rule>,
-}
 
 // TODO Eventually maybe(?) want to use these structs
 // (Argument, Predicate) to avoid
@@ -25,26 +17,83 @@ pub struct Predicate {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fact {
-    pub pred: String,      // TODO Rc<Predicate> (maybe?)
-    pub args: Vec<String>, // TODO Vec<Rc<Argument>> (maybe?)
+    pub pred: Symbol,
+    pub args: Vec<Symbol>,
 }
 
 impl Fact {
-    pub fn new(pred: String, args: Vec<String>) -> Fact {
+    pub fn new(pred: Symbol, args: Vec<Symbol>) -> Fact {
         Fact { pred, args }
+    }
+
+    pub fn from(pf: &ParsedFact, symbols: &mut SymbolTable) -> Fact {
+        let pred = symbols.intern(&pf.pred);
+        let mut args = Vec::new();
+        for parg in pf.args.iter() {
+            args.push(symbols.intern(&parg));
+        }
+
+        Fact::new(pred, args)
+    }
+
+    pub fn from_raw(raw_fact: &Vec<String>, symbols: &mut SymbolTable) -> Fact {
+        let mut args = Vec::new();
+        let mut pred = symbols.intern("");
+        for (i, item) in raw_fact.iter().enumerate() {
+            if i == 0 {
+                pred = symbols.intern(&item);
+            } else {
+                args.push(symbols.intern(&item));
+            }
+        }
+
+        Fact::new(pred, args)
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rule {
-    pub lhs: Vec<Vec<String>>,
-    pub rhs: Vec<String>,
+    pub lhs: Vec<Fact>,
+    pub rhs: Fact,
 }
 
 impl Rule {
-    pub fn new(lhs: Vec<Vec<String>>, rhs: Vec<String>) -> Rule {
+    pub fn new(lhs: Vec<Fact>, rhs: Fact) -> Rule {
         Rule { lhs, rhs }
     }
+
+    pub fn from(pr: &ParsedRule, symbols: &mut SymbolTable) -> Rule {
+        let mut lhs = Vec::new();
+
+        for parsed_raw_fact in pr.lhs.iter() {
+            // TODO use Fact's from_raw fn instead
+            let mut args = Vec::new();
+            let mut pred = symbols.intern("");
+            for (i, item) in parsed_raw_fact.iter().enumerate() {
+                if i == 0 {
+                    pred = symbols.intern(&item);
+                } else {
+                    args.push(symbols.intern(&item));
+                }
+            }
+            lhs.push(Fact::new(pred, args));
+        }
+
+        // TODO use Fact's from_raw fn instead
+        let mut args = Vec::new();
+        let mut pred = symbols.intern("");
+        for (i, item) in pr.rhs.iter().enumerate() {
+            if i == 0 {
+                pred = symbols.intern(&item);
+            } else {
+                args.push(symbols.intern(&item));
+            }
+        }
+        let rhs = Fact::new(pred, args);
+
+        Rule::new(lhs, rhs)
+    }
+
 }
 
 pub trait Statement {
@@ -70,10 +119,9 @@ impl Statement for Rule {
 
 #[derive(Debug)]
 pub struct KnowledgeBase {
-    pub facts: Vec<Fact>, // TODO HashMap<Rc<Predicate>, Vec<Rc<Argument>>> (maybe?)
-    // at least should be HashMap<String, Vec<String>>
+    pub facts: Vec<Fact>, // TODO HashMap of preds to arguments
     pub rules: Vec<Rule>,
-    symbols: SymbolTable
+    pub symbols: SymbolTable, // TODO change to private eventually
 }
 
 impl PartialEq for KnowledgeBase {
@@ -87,12 +135,32 @@ impl PartialEq for KnowledgeBase {
 #[allow(dead_code)]
 impl KnowledgeBase {
     pub fn new(facts: Vec<Fact>, rules: Vec<Rule>, symbols: SymbolTable) -> KnowledgeBase {
-        KnowledgeBase { facts, rules, symbols }
+        KnowledgeBase {
+            facts,
+            rules,
+            symbols,
+        }
     }
 
     pub fn from(pkb: ParsedKnowledgeBase) -> KnowledgeBase {
-        // Build SymbolTable
-        KnowledgeBase::new(pkb.facts, pkb.rules, SymbolTable::new())
+        println!("{:?}", pkb);
+        let mut facts = Vec::new();
+        let mut rules = Vec::new();
+        let mut symbols = SymbolTable::new();
+
+        for parsed_fact in pkb.facts.iter() {
+            facts.push(Fact::from(&parsed_fact, &mut symbols));
+        }
+
+        for parsed_rule in pkb.rules.iter() {
+            rules.push(Rule::from(&parsed_rule, &mut symbols));
+        }
+
+        KnowledgeBase::new(facts, rules, symbols)
+    }
+
+    pub fn intern(&mut self, name: &str) -> Symbol {
+        self.symbols.intern(name)
     }
 
     // TODO do inference;
@@ -100,7 +168,7 @@ impl KnowledgeBase {
         match statement.to_fact() {
             Some(fact) => {
                 return self.add_fact(fact);
-            },
+            }
             None => {
                 let rule = statement.to_rule().unwrap();
                 return self.add_rule(rule);
@@ -112,7 +180,7 @@ impl KnowledgeBase {
         match statement.to_fact() {
             Some(fact) => {
                 return self.remove_fact(&fact);
-            },
+            }
             None => {
                 let rule = statement.to_rule().unwrap();
                 return self.remove_rule(&rule);

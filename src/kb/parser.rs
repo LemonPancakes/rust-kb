@@ -1,8 +1,38 @@
 extern crate nom;
 
-use kb::knowledge_base::{Fact, KnowledgeBase, ParsedKnowledgeBase, Rule};
 use self::nom::*;
+use kb::knowledge_base::KnowledgeBase;
 use std::fs;
+
+#[derive(Debug, PartialEq)]
+pub struct ParsedKnowledgeBase {
+    pub facts: Vec<ParsedFact>,
+    pub rules: Vec<ParsedRule>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ParsedFact {
+    pub pred: String,      // TODO Rc<Predicate> (maybe?)
+    pub args: Vec<String>, // TODO Vec<Rc<Argument>> (maybe?)
+}
+
+impl ParsedFact {
+    pub fn new(pred: String, args: Vec<String>) -> ParsedFact {
+        ParsedFact { pred, args }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ParsedRule {
+    pub lhs: Vec<Vec<String>>,
+    pub rhs: Vec<String>,
+}
+
+impl ParsedRule {
+    pub fn new(lhs: Vec<Vec<String>>, rhs: Vec<String>) -> ParsedRule {
+        ParsedRule { lhs, rhs }
+    }
+}
 
 pub fn parse_kb_from_file(filename: &str) -> Result<KnowledgeBase, String> {
     let file = fs::read(filename).expect("file not found");
@@ -29,14 +59,14 @@ named!(
     ))
 );
 
-named!(fact<&[u8], Fact>,
+named!(fact<&[u8], ParsedFact>,
     ws!(do_parse!(
         tag!("fact:") >>
         tag!("(") >>
         pred: alpha >>
         args: many1!(map!(name, |c| String::from_utf8(c.to_vec()).unwrap())) >>
         tag!(")") >>
-        (Fact::new(String::from_utf8(pred.to_vec()).unwrap(), args))
+        (ParsedFact::new(String::from_utf8(pred.to_vec()).unwrap(), args))
     ))
 );
 
@@ -49,7 +79,7 @@ named!(rule_part<&[u8], Vec<String> >,
     ))
 );
 
-named!(rule<&[u8], Rule>,
+named!(rule<&[u8], ParsedRule>,
     ws!(do_parse!(
         tag!("rule:") >>
         tag!("(") >>
@@ -57,7 +87,7 @@ named!(rule<&[u8], Rule>,
         tag!(")") >>
         tag!("->") >>
         rhs: rule_part >>
-        (Rule::new(lhs, rhs))
+        (ParsedRule::new(lhs, rhs))
     ))
 );
 
@@ -73,8 +103,8 @@ named!(pub kb<&[u8], ParsedKnowledgeBase>,
 
 #[cfg(test)]
 mod parse_tests {
+    use super::{fact, kb, parse_kb_from_file, rule, KnowledgeBase};
     use kb::symbols::SymbolTable;
-    use super::{fact, kb, parse_kb_from_file, rule, Fact, KnowledgeBase, ParsedKnowledgeBase, Rule};
 
     #[test]
     fn parse_fact() {
@@ -82,7 +112,7 @@ mod parse_tests {
             fact(&b"fact: (isa cube box)eol"[..]),
             Ok((
                 &b"eol"[..],
-                Fact::new(
+                ParsedFact::new(
                     String::from("isa"),
                     vec!["cube", "box"]
                         .into_iter()
@@ -99,7 +129,7 @@ mod parse_tests {
             rule(&b"rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z)eol"[..]),
             Ok((
                 &b"eol"[..],
-                Rule::new(
+                ParsedRule::new(
                     vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
                         .into_iter()
                         .map(|lst| lst.into_iter().map(|w| String::from(w)).collect())
@@ -120,14 +150,14 @@ mod parse_tests {
             Ok((
                 &b"}"[..],
                 ParsedKnowledgeBase {
-                    facts: vec![Fact::new(
+                    facts: vec![ParsedFact::new(
                         String::from("isa"),
                         vec!["cube","box"].into_iter().map(|w| String::from(w)).collect()
-                    ), Fact::new(
+                    ), ParsedFact::new(
                         String::from("isa"),
                         vec!["box","container"].into_iter().map(|w| String::from(w)).collect()
                     )],
-                    rules: vec![Rule::new(
+                    rules: vec![ParsedRule::new(
                         vec![vec!["inst","?x","?y"],vec!["isa","?y","?z"]].into_iter().map(|lst| lst.into_iter().map(|w| String::from(w)).collect()).collect(),
                         vec!["inst", "?x", "?z"].into_iter().map(|w| String::from(w)).collect()
                     )]
@@ -142,14 +172,14 @@ mod parse_tests {
             parse_kb_from_file("test/test.kb"),
             Ok(KnowledgeBase::new(
                 vec![
-                    Fact::new(
+                    ParsedFact::new(
                         String::from("isa"),
                         vec!["cube", "box"]
                             .into_iter()
                             .map(|w| String::from(w))
                             .collect(),
                     ),
-                    Fact::new(
+                    ParsedFact::new(
                         String::from("isa"),
                         vec!["box", "container"]
                             .into_iter()
@@ -158,7 +188,7 @@ mod parse_tests {
                     ),
                 ],
                 vec![
-                    Rule::new(
+                    ParsedRule::new(
                         vec![vec!["inst", "?x", "?y"], vec!["isa", "?y", "?z"]]
                             .into_iter()
                             .map(|lst| lst.into_iter().map(|w| String::from(w)).collect())

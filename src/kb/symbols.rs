@@ -9,7 +9,7 @@ pub struct Symbol(Rc<str>);
 
 impl PartialEq for Symbol {
     fn eq(&self, other: &Symbol) -> bool {
-        Rc::ptr_eq(&self.0, &other.0)
+        self.0.as_ptr() == other.0.as_ptr()
     }
 }
 
@@ -30,7 +30,7 @@ impl SymbolTable {
         Self::default()
     }
 
-    pub fn insert(&mut self, name: &str) -> Symbol {
+    pub fn intern(&mut self, name: &str) -> Symbol {
         if let Some(rc) = self.0.get(name) {
             Symbol(rc)
         } else {
@@ -42,12 +42,12 @@ impl SymbolTable {
 }
 
 #[test]
-fn inserting() {
+fn interning() {
     let mut tab = SymbolTable::new();
 
-    let a0 = tab.insert("a");
-    let a1 = tab.insert("a");
-    let b  = tab.insert("b");
+    let a0 = tab.intern("a");
+    let a1 = tab.intern("a");
+    let b  = tab.intern("b");
 
     assert_eq!(a0, a1);
     assert_ne!(a0, b);
