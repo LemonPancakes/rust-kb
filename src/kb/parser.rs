@@ -10,6 +10,12 @@ pub struct ParsedKnowledgeBase {
     pub rules: Vec<ParsedRule>,
 }
 
+impl ParsedKnowledgeBase {
+    pub fn new(facts: Vec<ParsedFact>, rules: Vec<ParsedRule>) -> ParsedKnowledgeBase {
+        ParsedKnowledgeBase { facts, rules }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct ParsedFact {
     pub pred: String,      // TODO Rc<Predicate> (maybe?)
@@ -34,11 +40,11 @@ impl ParsedRule {
     }
 }
 
-pub fn parse_kb_from_file(filename: &str) -> Result<KnowledgeBase, String> {
+pub fn parse_kb_from_file(filename: &str) -> Result<ParsedKnowledgeBase, String> {
     let file = fs::read(filename).expect("file not found");
 
     match kb(&file[..]) {
-        Ok(tuple) => Ok(KnowledgeBase::from(tuple.1)),
+        Ok(tuple) => Ok(tuple.1),
         Err(_) => Err(String::from("Failed to parse kb from file")),
     }
 }
@@ -103,8 +109,7 @@ named!(pub kb<&[u8], ParsedKnowledgeBase>,
 
 #[cfg(test)]
 mod parse_tests {
-    use super::{fact, kb, parse_kb_from_file, rule, KnowledgeBase};
-    use kb::symbols::SymbolTable;
+    use super::*;
 
     #[test]
     fn parse_fact() {
@@ -170,7 +175,7 @@ mod parse_tests {
     fn parse_from_file() {
         assert_eq!(
             parse_kb_from_file("test/test.kb"),
-            Ok(KnowledgeBase::new(
+            Ok(ParsedKnowledgeBase::new(
                 vec![
                     ParsedFact::new(
                         String::from("isa"),
@@ -199,7 +204,6 @@ mod parse_tests {
                             .collect(),
                     ),
                 ],
-                SymbolTable::new()
             ))
         )
     }

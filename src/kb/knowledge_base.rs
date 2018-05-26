@@ -1,4 +1,4 @@
-use kb::parser::{ParsedFact, ParsedKnowledgeBase, ParsedRule};
+use kb::parser::{parse_kb_from_file, ParsedFact, ParsedKnowledgeBase, ParsedRule};
 use kb::symbols::{Symbol, SymbolTable};
 
 // TODO Eventually maybe(?) want to use these structs
@@ -93,7 +93,6 @@ impl Rule {
 
         Rule::new(lhs, rhs)
     }
-
 }
 
 pub trait Statement {
@@ -132,7 +131,6 @@ impl PartialEq for KnowledgeBase {
 
 //TODO most of these functions will need to be reimplemented
 // based on new KnowledgeBase data structure
-#[allow(dead_code)]
 impl KnowledgeBase {
     pub fn new(facts: Vec<Fact>, rules: Vec<Rule>, symbols: SymbolTable) -> KnowledgeBase {
         KnowledgeBase {
@@ -143,7 +141,6 @@ impl KnowledgeBase {
     }
 
     pub fn from(pkb: ParsedKnowledgeBase) -> KnowledgeBase {
-        println!("{:?}", pkb);
         let mut facts = Vec::new();
         let mut rules = Vec::new();
         let mut symbols = SymbolTable::new();
@@ -159,7 +156,12 @@ impl KnowledgeBase {
         KnowledgeBase::new(facts, rules, symbols)
     }
 
-    pub fn intern(&mut self, name: &str) -> Symbol {
+    pub fn from_file(filename: &str) -> Result<KnowledgeBase, String> {
+        let pkb = parse_kb_from_file(filename)?;
+        Ok(KnowledgeBase::from(pkb))
+    }
+
+    pub fn intern_string(&mut self, name: &str) -> Symbol {
         self.symbols.intern(name)
     }
 
@@ -247,8 +249,8 @@ mod knowledge_base_tests {
     fn test_add_fact() {
         let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
         let new_fact = Fact::new(
-            "isa".to_string(),
-            vec!["Bob".to_string(), "boy".to_string()],
+            kb.intern_string("isa"),
+            vec![kb.intern_string("Bob"), kb.intern_string("boy")],
         );
         kb.add_fact(new_fact.clone());
 
@@ -257,11 +259,9 @@ mod knowledge_base_tests {
 
     #[test]
     fn test_remove_fact() {
-        let new_fact = Fact::new(
-            "isa".to_string(),
-            vec!["Bob".to_string(), "boy".to_string()],
-        );
-        let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], SymbolTable::new());
+        let mut st = SymbolTable::new();
+        let new_fact = Fact::new(st.intern("isa"), vec![st.intern("Bob"), st.intern("boy")]);
+        let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], st);
         kb.remove_fact(&new_fact);
 
         assert_eq!(kb.contains_fact(&new_fact), false);
@@ -270,21 +270,17 @@ mod knowledge_base_tests {
 
     #[test]
     fn test_ask_fact_already_in_kb() {
-        let new_fact = Fact::new(
-            "isa".to_string(),
-            vec!["Bob".to_string(), "boy".to_string()],
-        );
-        let kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], SymbolTable::new());
+        let mut st = SymbolTable::new();
+        let new_fact = Fact::new(st.intern("isa"), vec![st.intern("Bob"), st.intern("boy")]);
+        let kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], st);
         assert_eq!(kb.ask(&new_fact), Ok(true))
     }
 
     #[test]
     fn test_ask_fact_not_in_fb() {
-        let new_fact = Fact::new(
-            "isa".to_string(),
-            vec!["Bob".to_string(), "boy".to_string()],
-        );
-        let kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
+        let mut st = SymbolTable::new();
+        let new_fact = Fact::new(st.intern("isa"), vec![st.intern("Bob"), st.intern("boy")]);
+        let kb = KnowledgeBase::new(vec![], vec![], st);
         assert_eq!(kb.ask(&new_fact), Ok(false));
     }
 

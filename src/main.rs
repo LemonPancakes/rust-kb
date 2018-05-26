@@ -3,9 +3,9 @@ extern crate nom;
 
 mod kb;
 
-use kb::parser::parse_kb_from_file;
+use kb::knowledge_base::*;
 
 fn main() {
-    let kb = parse_kb_from_file("test/full.kb").unwrap();
+    let kb = KnowledgeBase::from_file("test/full.kb");
     println!("{:?}", kb);
 }
