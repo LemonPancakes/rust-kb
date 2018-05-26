@@ -1,6 +1,4 @@
-extern crate nom;
-
-use self::nom::*;
+use nom::*;
 use kb::knowledge_base::KnowledgeBase;
 use std::fs;
 
