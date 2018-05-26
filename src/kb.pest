@@ -8,7 +8,7 @@ rule_lhs = { "(" ~ rule_part+ ~ ")" }
 
 rule_rhs = { rule_part }
 
-kb = { (fact | rule)* }
+kb = { ^"kb" ~ "{" ~ (fact | rule)* ~ "}" }
 
 var = @{"?" ~ letter ~ any_char*}
 predicate = @{name}
