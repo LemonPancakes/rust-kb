@@ -1,5 +1,6 @@
+#![allow(dead_code)]
+
 use nom::*;
-use kb::knowledge_base::KnowledgeBase;
 use std::fs;
 
 #[derive(Debug, PartialEq)]

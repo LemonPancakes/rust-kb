@@ -1,7 +1,9 @@
 [package]
 name = "rust-kb"
 version = "0.1.0"
-authors = ["ChristopherKober <ChristopherKober@users.noreply.github.com>"]
+authors = ["Christopher Kober <ChristopherKober@users.noreply.github.com>",
+           "Eric Hao <brotatotes@gmail.com>",
+           "Adam He <ah29954@gmail.com>"]
 
 [dependencies]
 pest = "^1.0"

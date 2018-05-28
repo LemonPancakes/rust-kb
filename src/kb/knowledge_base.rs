@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use kb::parser::{parse_kb_from_file, ParsedFact, ParsedKnowledgeBase, ParsedRule};
 use kb::symbols::{Symbol, SymbolTable};
 
