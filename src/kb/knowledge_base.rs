@@ -242,7 +242,6 @@ impl KnowledgeBase {
     }
 }
 
-#[allow(unused_must_use)]
 #[cfg(test)]
 mod knowledge_base_tests {
     use super::*;
@@ -254,7 +253,11 @@ mod knowledge_base_tests {
             kb.intern_string("isa"),
             vec![kb.intern_string("Bob"), kb.intern_string("boy")],
         );
-        kb.add_fact(new_fact.clone());
+
+        match kb.add_fact(new_fact.clone()) {
+            Ok(_) => {}
+            Err(e) => println!("{}", e),
+        }
 
         assert_eq!(kb.contains_fact(&new_fact), true);
     }
@@ -264,7 +267,10 @@ mod knowledge_base_tests {
         let mut st = SymbolTable::new();
         let new_fact = Fact::new(st.intern("isa"), vec![st.intern("Bob"), st.intern("boy")]);
         let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], st);
-        kb.remove_fact(&new_fact);
+        match kb.remove_fact(&new_fact) {
+            Ok(_) => {}
+            Err(e) => println!("{}", e),
+        }
 
         assert_eq!(kb.contains_fact(&new_fact), false);
         assert_eq!(kb.facts.is_empty(), true);

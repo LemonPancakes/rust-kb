@@ -11,6 +11,6 @@ const _GRAMMAR: &'static str = include_str!("kb.pest");
 #[grammar = "kb.pest"]
 pub struct PDDLParser;
 
-pub fn parse<'a>(file : &'a str) -> iterators::Pairs<'a, Rule> {
-    PDDLParser::parse(Rule::kb,file).unwrap()
+pub fn parse<'a>(file: &'a str) -> iterators::Pairs<'a, Rule> {
+    PDDLParser::parse(Rule::kb, file).unwrap()
 }
