@@ -1,10 +1,10 @@
-#[macro_use]
 extern crate nom;
-// #[macro_use]
-// extern crate weak_table; // this doesn't work for some reason...
+extern crate weak_table;
 extern crate pest;
-#[macro_use]
-extern crate pest_derive;
+#[macro_use] extern crate pest_derive;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
+extern crate serde_json;
 
 pub mod kb;
 pub mod pest_parser_bk;

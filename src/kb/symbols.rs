@@ -1,6 +1,4 @@
-extern crate weak_table;
-
-use self::weak_table::WeakHashSet;
+use weak_table::WeakHashSet;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
 

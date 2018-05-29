@@ -1,5 +1,5 @@
-#[macro_use]
 extern crate nom;
+extern crate weak_table;
 
 mod kb;
 
