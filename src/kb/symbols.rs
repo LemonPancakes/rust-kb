@@ -7,6 +7,12 @@ use std::rc::{Rc, Weak};
 #[derive(Clone, Debug, Hash)]
 pub struct Symbol(Rc<str>);
 
+impl Symbol {
+    pub fn is_var(&self) -> bool {
+        &self.0[..1] == "?"
+    }
+}
+
 impl PartialEq for Symbol {
     fn eq(&self, other: &Symbol) -> bool {
         self.0.as_ptr() == other.0.as_ptr()
