@@ -335,13 +335,9 @@ impl KnowledgeBase {
         } else if rule.lhs.len() > 1 {
             let lhs = &rule.lhs[0];
             if let Ok(bindings) = self.try_bind(fact, lhs) {
-                println!("{:?}", &bindings);
                 let new_lhs = rule.lhs.clone().iter().enumerate().filter(|&(n, _)| n != 0).map(|(_, f)| self.apply_bindings(f, &bindings)).collect::<Vec<Fact>>();
-                println!("{:?}", &new_lhs);
                 let new_rhs = self.apply_bindings(&rule.rhs, &bindings);
-                println!("{:?}", &new_rhs);
                 let new_rule = Rule::new(new_lhs, new_rhs);
-                println!("{:?}", &new_rule);
                 assert!(self.assert(new_rule).is_ok());
             }
         }
