@@ -1,6 +1,6 @@
-use weak_table::WeakHashSet;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
+use weak_table::WeakHashSet;
 
 #[derive(Clone, Debug, Hash)]
 pub struct Symbol(Rc<str>);
@@ -55,4 +55,15 @@ fn interning() {
 
     assert_eq!(a0, a1);
     assert_ne!(a0, b);
+}
+
+#[test]
+fn variable() {
+    let mut tab = SymbolTable::new();
+
+    let a = tab.intern("ab");
+    let b = tab.intern("?a");
+
+    assert_eq!(a.is_var(), false);
+    assert_eq!(b.is_var(), true)
 }
