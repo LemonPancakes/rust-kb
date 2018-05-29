@@ -3,7 +3,7 @@
 use kb::parser::{parse_kb_from_file, ParsedFact, ParsedKnowledgeBase, ParsedRule};
 use kb::symbols::{Symbol, SymbolTable};
 
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 use std::rc::Rc;
 
 // TODO Eventually maybe(?) want to use these structs
@@ -20,7 +20,7 @@ pub struct Predicate {
     pub name: String,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Fact {
     pub pred: Symbol,
     pub args: Vec<Symbol>,
@@ -392,6 +392,62 @@ impl KnowledgeBase {
             }
         }
         return false;
+    }
+
+    pub fn query(&self, f : &Fact) -> Vec<Vec<(Symbol,Symbol)>> {
+
+        let mut query_indices = vec![];
+        for i in 0..f.args.len() {
+            if f.args[i].is_var() {query_indices.push(i);}
+        }
+
+        let mut bindings = vec![];
+        for matching_fact in self.get_query_facts(f) {
+            let mut curr_binding = vec![];
+            for i in query_indices.iter() {
+                curr_binding.push((f.args[*i].clone(),matching_fact.args[*i].clone()));
+            }
+            bindings.push(curr_binding);
+        }
+        bindings
+    }
+
+    pub fn get_query_facts(&self, f : &Fact) -> Vec<Rc<Fact>> {
+        match self.facts_map.get(&f.pred) {
+            Some(arg_list) => {
+                if arg_list.len() == f.args.len() {
+                    let mut facts = HashSet::new();
+                    let mut any_bind = false;
+
+                    for i in 0..arg_list.len() {
+                        if !f.args[i].is_var() {
+
+                            if let Some(fact_list) = arg_list[i].get(&f.args[i]) {
+                                let temp_facts = fact_list.iter().map(|f| f.clone()).collect();
+                                if any_bind {
+                                    facts = facts.intersection(&temp_facts).map(|f| f.clone()).collect();
+                                } else {
+                                    facts = temp_facts;
+                                }
+                            }
+
+                            any_bind = true;
+                        }
+                    }
+
+                    if !any_bind {
+                        for fact_list in arg_list[0].values() {
+                            for fact in fact_list {
+                                facts.insert(fact.clone());
+                            }
+                        }
+                    }
+                    return facts.iter().map({ |f| f.clone() }).collect();
+                }
+            }
+            None => {}
+        }
+        vec![]
     }
 }
 
