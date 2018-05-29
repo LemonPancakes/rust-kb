@@ -4,7 +4,7 @@ use self::weak_table::WeakHashSet;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub struct Symbol(Rc<str>);
 
 impl PartialEq for Symbol {

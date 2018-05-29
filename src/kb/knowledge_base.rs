@@ -3,6 +3,9 @@
 use kb::parser::{parse_kb_from_file, ParsedFact, ParsedKnowledgeBase, ParsedRule};
 use kb::symbols::{Symbol, SymbolTable};
 
+use std::collections::HashMap;
+use std::rc::Rc;
+
 // TODO Eventually maybe(?) want to use these structs
 // (Argument, Predicate) to avoid
 // having so many copies of the same data
@@ -120,7 +123,9 @@ impl Statement for Rule {
 
 #[derive(Debug)]
 pub struct KnowledgeBase {
-    pub facts: Vec<Fact>, // TODO HashMap of preds to arguments
+    pub facts: Vec<Rc<Fact>>, // TODO HashMap of preds to arguments
+    pub facts_map: HashMap<Symbol,Vec<HashMap<Symbol, Vec<Rc<Fact>>>>>,
+
     pub rules: Vec<Rule>,
     pub symbols: SymbolTable, // TODO change to private eventually
 }
@@ -134,12 +139,58 @@ impl PartialEq for KnowledgeBase {
 //TODO most of these functions will need to be reimplemented
 // based on new KnowledgeBase data structure
 impl KnowledgeBase {
+//    fn create_facts_map(&mut self) {
+//        for i in 0..self.facts.len() {
+//            let mut args_vec = self.facts_map.entry(self.facts[i].pred.clone()).or_insert(Vec::new());
+//
+//            if args_vec.len() == 0 {
+//                for _ in 0..self.facts[i].args.len() {
+//                    args_vec.push(HashMap::new());
+//                }
+//            }
+//
+//            for j in 0..args_vec.len() {
+//                let mut arg_list = args_vec[j].entry(self.facts[i].args[j].clone()).or_insert(Vec::new());
+//                arg_list.push(self.facts[i].clone());
+//            }
+//        }
+//    }
+
+    fn insert_fact(&mut self,fact : Fact) {
+
+        let fact_reference = Rc::new(fact);
+        self.facts.push(fact_reference.clone());
+
+        let args_vec = self.facts_map.entry(fact_reference.pred.clone()).or_insert(Vec::new());
+
+        if args_vec.len() == 0 {
+            for _ in 0..fact_reference.args.len() {
+                args_vec.push(HashMap::new());
+            }
+        }
+
+
+
+        for j in 0..args_vec.len() {
+            let mut arg_list = args_vec[j].entry(fact_reference.args[j].clone()).or_insert(Vec::new());
+            arg_list.push(fact_reference.clone());
+        }
+    }
+
     pub fn new(facts: Vec<Fact>, rules: Vec<Rule>, symbols: SymbolTable) -> KnowledgeBase {
-        KnowledgeBase {
-            facts,
+
+        let mut kb = KnowledgeBase {
+            facts : Vec::new(),
+            facts_map : HashMap::new(),
             rules,
             symbols,
+        };
+
+        for fact in facts {
+            kb.insert_fact(fact);
         }
+
+        kb
     }
 
     pub fn from(pkb: ParsedKnowledgeBase) -> KnowledgeBase {
@@ -203,17 +254,41 @@ impl KnowledgeBase {
         if self.contains_fact(&fact) {
             return Err(String::from("fact already in kb"));
         }
-        self.facts.push(fact);
+
+        self.insert_fact(fact);
         Ok(())
     }
 
     fn remove_fact(&mut self, fact: &Fact) -> Result<(), String> {
-        if !self.contains_fact(fact) {
-            return Err(String::from("fact does not exist in kb"));
+        let mut fact_to_remove = None;
+
+        for i in 0..self.facts.len() {
+            if fact == &*self.facts[i] {
+                fact_to_remove = Some(self.facts[i].clone());
+                self.facts.remove(i);
+            }
         }
-        let index = self.facts.iter().position(|x| *x == *fact).unwrap();
-        self.facts.remove(index);
-        Ok(())
+
+        match fact_to_remove {
+            None => Err(String::from("fact does not exist in kb")),
+
+            Some(fact_reference) => {
+                //self.facts.push(fact_reference.clone());
+
+                let mut args_vec = self.facts_map.get_mut(&fact_reference.pred).unwrap();//.or_insert(Vec::new());
+
+                for j in 0..args_vec.len() {
+                    let mut arg_list = args_vec[j].get_mut(&fact_reference.args[j]).unwrap();//.entry(fact_reference.args[j].clone()).or_insert(Vec::new());
+                    //arg_list.push(fact_reference.clone());
+
+                    let index = arg_list.iter().position(|x| *x == fact_reference).unwrap();
+                    arg_list.remove(index);
+                }
+
+                Ok(())
+
+            }
+        }
     }
 
     fn add_rule(&mut self, rule: Rule) -> Result<(), String> {
@@ -234,7 +309,7 @@ impl KnowledgeBase {
     }
 
     fn contains_fact(&self, fact: &Fact) -> bool {
-        self.facts.contains(fact)
+        self.facts.iter().fold(false,|acc,f| acc || &**f == fact)
     }
 
     fn contains_rule(&self, rule: &Rule) -> bool {
