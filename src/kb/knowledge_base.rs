@@ -10,16 +10,17 @@ use std::rc::Rc;
 // (Argument, Predicate) to avoid
 // having so many copies of the same data
 // If not, just delete.
-#[derive(Debug, PartialEq, Clone)]
-pub struct Argument {
-    pub name: String,
-}
+//#[derive(Debug, PartialEq, Clone)]
+//pub struct Argument {
+//    pub name: String,
+//}
+//
+//#[derive(Debug, PartialEq, Clone)]
+//pub struct Predicate {
+//    pub name: String,
+//}
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Predicate {
-    pub name: String,
-}
-
+/// Defines a fact relationship between two or more arguments
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Fact {
     pub pred: Symbol,
@@ -56,6 +57,13 @@ impl Fact {
     }
 }
 
+/// Defines a knowledge base fact that can be infered, given 1 or more facts as the premise
+///
+/// Allows structures and complex dependencies to be imposed on a knowledge base without the
+/// need for every rule to be defined explictly. When a rule is added to a knowledge base,
+/// it will use logical inference by forward chaining to automatically create the implied rules.
+/// Use this if you want to impose specialized relationships that are not the default assumption
+/// for rules.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rule {
     pub lhs: Vec<Fact>,
@@ -63,10 +71,12 @@ pub struct Rule {
 }
 
 impl Rule {
+    /// Create a new rule from Facts
     pub fn new(lhs: Vec<Fact>, rhs: Fact) -> Rule {
         Rule { lhs, rhs }
     }
 
+    /// Create a new rule from a parsed object
     pub fn from(pr: &ParsedRule, symbols: &mut SymbolTable) -> Rule {
         let mut lhs = Vec::new();
 
@@ -100,10 +110,15 @@ impl Rule {
     }
 }
 
+/// Abstraction that combines facts and rules
+///
+/// This trait allows objects to be either facts and rules, and then do case handling depending
+/// on the specific statement passed in
 pub trait Statement {
     fn to_fact(&self) -> Option<Fact>;
     fn to_rule(&self) -> Option<Rule>;
 }
+
 impl Statement for Fact {
     fn to_fact(&self) -> Option<Fact> {
         Some(self.clone())
@@ -112,6 +127,7 @@ impl Statement for Fact {
         None
     }
 }
+
 impl Statement for Rule {
     fn to_fact(&self) -> Option<Fact> {
         None
@@ -121,41 +137,35 @@ impl Statement for Rule {
     }
 }
 
+// We added these type aliases to make long types more readable
+// We are unsure if these are good/if there is a better way
+// It makes the types easier to read, but makes them more opaque
+type ArgumentHash = HashMap<Symbol, Vec<Rc<Fact>>>;
+type QueryBinding = Vec<(Symbol,Symbol)>;
+
+/// A data structure which can take in facts and rules, and respond to logical questions and queries
+///
+/// A knowledge base can take (as well as remove) facts and rules to generate facts which it
+/// knows to be true. Then, the knowledge base can be asked logical questions and will answer whether
+/// it can determine the answer.
 #[derive(Debug)]
 pub struct KnowledgeBase {
-    pub facts: Vec<Rc<Fact>>, // TODO HashMap of preds to arguments
-    pub facts_map: HashMap<Symbol, Vec<HashMap<Symbol, Vec<Rc<Fact>>>>>,
+    facts: Vec<Rc<Fact>>,
+    facts_map: HashMap<Symbol, Vec<ArgumentHash>>,
 
-    pub rules: Vec<Rule>,
-    pub symbols: SymbolTable, // TODO change to private eventually
+    rules: Vec<Rule>,
+    symbols: SymbolTable, // TODO change to private eventually
 }
 
 impl PartialEq for KnowledgeBase {
     fn eq(&self, other: &KnowledgeBase) -> bool {
+        //TODO Make this work as expected. AKA not depend on order of insertion
         self.facts == other.facts && self.rules == other.rules
     }
 }
 
-//TODO most of these functions will need to be reimplemented
-// based on new KnowledgeBase data structure
 impl KnowledgeBase {
-    //    fn create_facts_map(&mut self) {
-    //        for i in 0..self.facts.len() {
-    //            let mut args_vec = self.facts_map.entry(self.facts[i].pred.clone()).or_insert(Vec::new());
-    //
-    //            if args_vec.len() == 0 {
-    //                for _ in 0..self.facts[i].args.len() {
-    //                    args_vec.push(HashMap::new());
-    //                }
-    //            }
-    //
-    //            for j in 0..args_vec.len() {
-    //                let mut arg_list = args_vec[j].entry(self.facts[i].args[j].clone()).or_insert(Vec::new());
-    //                arg_list.push(self.facts[i].clone());
-    //            }
-    //        }
-    //    }
-
+    /// Creates a new knowledge base with given rules and facts and a symbol table
     pub fn new(facts: Vec<Fact>, rules: Vec<Rule>, symbols: SymbolTable) -> KnowledgeBase {
         let mut kb = KnowledgeBase {
             facts: Vec::new(),
@@ -171,6 +181,7 @@ impl KnowledgeBase {
         kb
     }
 
+    /// Creates a knowledge base from a parsed object from the crate's parser
     pub fn from(pkb: ParsedKnowledgeBase) -> KnowledgeBase {
         let mut facts = Vec::new();
         let mut rules = Vec::new();
@@ -187,6 +198,7 @@ impl KnowledgeBase {
         KnowledgeBase::new(facts, rules, symbols)
     }
 
+    /// Attempts to create a knowledge base from a given input file
     pub fn from_file(filename: &str) -> Result<KnowledgeBase, String> {
         let pkb = parse_kb_from_file(filename)?;
         Ok(KnowledgeBase::from(pkb))
@@ -196,7 +208,9 @@ impl KnowledgeBase {
         self.symbols.intern(name)
     }
 
-    // TODO do inference;
+    /// Add a fact or rule to the knowledge base
+    ///
+    /// This function will use inference by forward chaining to add implied facts from given rules.
     pub fn assert<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         match statement.to_fact() {
             Some(fact) => {
@@ -215,6 +229,7 @@ impl KnowledgeBase {
         }
     }
 
+    /// Remove a fact or rule from the knowledge base
     pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         match statement.to_fact() {
             Some(fact) => {
@@ -227,6 +242,7 @@ impl KnowledgeBase {
         }
     }
 
+    /// Ask if a specific fact can be proven by the knowledge base
     pub fn ask(&self, fact: &Fact) -> Result<bool, String> {
         if self.contains_fact(fact) {
             return Ok(true);
@@ -394,14 +410,16 @@ impl KnowledgeBase {
         return false;
     }
 
-    pub fn query(&self, f : &Fact) -> Vec<Vec<(Symbol,Symbol)>> {
-
+    /// Query a knowledge base to find all possible bindings to variables in the fact
+    pub fn query(&self, f : &Fact) -> Vec<QueryBinding> {
         let mut query_indices = vec![];
+
         for i in 0..f.args.len() {
             if f.args[i].is_var() {query_indices.push(i);}
         }
 
         let mut bindings = vec![];
+
         for matching_fact in self.get_query_facts(f) {
             let mut curr_binding = vec![];
             for i in query_indices.iter() {
@@ -409,10 +427,11 @@ impl KnowledgeBase {
             }
             bindings.push(curr_binding);
         }
+
         bindings
     }
 
-    pub fn get_query_facts(&self, f : &Fact) -> Vec<Rc<Fact>> {
+    fn get_query_facts(&self, f : &Fact) -> Vec<Rc<Fact>> {
         match self.facts_map.get(&f.pred) {
             Some(arg_list) => {
                 if arg_list.len() == f.args.len() {
@@ -644,5 +663,51 @@ mod inference_tests {
         );
 
         assert_eq!(false, kb.has_var(&fact));
+    }
+}
+
+#[cfg(test)]
+mod query_tests {
+    use super::*;
+
+    #[test]
+    fn empty_test() {
+        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
+        let f = Fact::new(kb.intern_string("isa"), vec![kb.intern_string("?a"), kb.intern_string("?b")]);
+        let a = kb.query(&f);
+
+        let b : Vec<QueryBinding> = vec![];
+        assert_eq!(a,b);
+    }
+
+    #[test]
+    fn single_binding_test() {
+        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
+        let facts = vec![vec!["isa","a","b"],vec!["isa","c","d"],vec!["isa","a","c"],vec!["isa","a","d"],vec!["isa","f","g"]];
+
+        for fact in facts {
+            let f = Fact::new(kb.intern_string(fact[0]),vec![kb.intern_string(fact[1]),kb.intern_string(fact[2])]);
+            kb.assert(f);
+        }
+
+        let f = Fact::new(kb.intern_string("isa"), vec![kb.intern_string("f"), kb.intern_string("?b")]);
+        let a = kb.query(&f);
+        let b : Vec<QueryBinding> = vec![vec![(kb.intern_string("?b"), kb.intern_string("g"))]];
+        assert_eq!(a,b);
+    }
+
+    #[test]
+    fn multi_binding_test() {
+        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
+        let facts = vec![vec!["isa","a","b","c"],vec!["isa","c","d","c"],vec!["isa","a","c","c"],vec!["isa","a","d","c"],vec!["isa","f","g","c"]];
+
+        for fact in facts {
+            let f = Fact::new(kb.intern_string(fact[0]),vec![kb.intern_string(fact[1]),kb.intern_string(fact[2]),kb.intern_string(fact[3])]);
+            kb.assert(f);
+        }
+
+        let f = Fact::new(kb.intern_string("isa"), vec![kb.intern_string("?a"), kb.intern_string("?b"), kb.intern_string("c")]);
+
+        assert_eq!(kb.query(&f).len(),5);
     }
 }
