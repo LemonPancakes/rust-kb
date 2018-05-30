@@ -687,7 +687,10 @@ mod query_tests {
 
         for fact in facts {
             let f = Fact::new(kb.intern_string(fact[0]),vec![kb.intern_string(fact[1]),kb.intern_string(fact[2])]);
-            kb.assert(f);
+            match kb.assert(f) {
+                Ok(_) => {},
+                Err(e) => println!("{}", e)
+            }
         }
 
         let f = Fact::new(kb.intern_string("isa"), vec![kb.intern_string("f"), kb.intern_string("?b")]);
@@ -703,7 +706,10 @@ mod query_tests {
 
         for fact in facts {
             let f = Fact::new(kb.intern_string(fact[0]),vec![kb.intern_string(fact[1]),kb.intern_string(fact[2]),kb.intern_string(fact[3])]);
-            kb.assert(f);
+            match kb.assert(f) {
+                Ok(_) => {},
+                Err(e) => println!("{}", e)
+            }
         }
 
         let f = Fact::new(kb.intern_string("isa"), vec![kb.intern_string("?a"), kb.intern_string("?b"), kb.intern_string("c")]);
