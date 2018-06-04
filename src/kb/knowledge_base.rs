@@ -45,7 +45,7 @@ impl Fact {
     fn from(pf: &ParsedFact, symbols: &mut SymbolTable) -> Fact {
         let pred = symbols.intern(&pf.pred);
         let mut args = Vec::new();
-        for parg in pf.args.iter() {
+        for parg in &pf.args {
             args.push(symbols.intern(&parg));
         }
 
@@ -54,7 +54,7 @@ impl Fact {
 
     /// Creates a fact from a vector of Strings, each representing a token in the fact. A symbol
     /// table must also be provided
-    fn from_raw(raw_fact: &Vec<String>, symbols: &mut SymbolTable) -> Fact {
+    fn from_raw(raw_fact: &[String], symbols: &mut SymbolTable) -> Fact {
         let mut args = Vec::new();
         let mut pred = symbols.intern("");
         for (i, item) in raw_fact.iter().enumerate() {
@@ -69,7 +69,7 @@ impl Fact {
     }
 
     fn contains_variable(&self) -> bool {
-        for s in self.args.iter() {
+        for s in &self.args {
             if s.is_var() {
                 return true;
             }
@@ -124,7 +124,7 @@ impl Rule {
     fn from(pr: &ParsedRule, symbols: &mut SymbolTable) -> Rule {
         let mut lhs = Vec::new();
 
-        for parsed_raw_fact in pr.lhs.iter() {
+        for parsed_raw_fact in &pr.lhs {
             // TODO use Fact's from_raw fn instead
             let mut args = Vec::new();
             let mut pred = symbols.intern("");
@@ -167,18 +167,24 @@ pub trait Statement {
 }
 
 impl Statement for Fact {
+    #[inline]
     fn to_fact(&self) -> Option<Fact> {
         Some(self.clone())
     }
+
+    #[inline]
     fn to_rule(&self) -> Option<Rule> {
         None
     }
 }
 
 impl Statement for Rule {
+    #[inline]
     fn to_fact(&self) -> Option<Fact> {
         None
     }
+
+    #[inline]
     fn to_rule(&self) -> Option<Rule> {
         Some(self.clone())
     }
@@ -261,14 +267,14 @@ impl KnowledgeBase {
         let mut rules = Vec::new();
         let mut symbols = SymbolTable::new();
 
-        for parsed_fact in pkb.facts.iter() {
+        for parsed_fact in &pkb.facts {
             let f = Fact::from(&parsed_fact, &mut symbols);
             if !f.contains_variable() {
                 facts.push(f);
             }
         }
 
-        for parsed_rule in pkb.rules.iter() {
+        for parsed_rule in &pkb.rules {
             rules.push(Rule::from(&parsed_rule, &mut symbols));
         }
 
@@ -374,6 +380,7 @@ impl KnowledgeBase {
         Ok(Rule::from(&pr,&mut self.symbols))
     }
 
+    #[inline]
     fn intern_string(&mut self, name: &str) -> Symbol {
         self.symbols.intern(name)
     }
@@ -400,7 +407,7 @@ impl KnowledgeBase {
             //TODO: Check if fact has bound variables
             Some(fact) => match self.add_fact(fact) {
                 Ok(rc_fact) => {
-                    for rule in self.rules.clone().iter() {
+                    for rule in &self.rules.clone() {
                         self.infer(rc_fact.clone(), rule.clone());
                     }
                     Ok(rc_fact)
@@ -411,7 +418,7 @@ impl KnowledgeBase {
                 let rule = statement.to_rule().unwrap();
                 match self.add_rule(rule) {
                     Ok(rc_rule) => {
-                        for fact in self.facts.clone().iter() {
+                        for fact in &self.facts.clone() {
                             self.infer(fact.clone(), rc_rule.clone());
                         }
                         Ok(rc_rule)
@@ -443,11 +450,11 @@ impl KnowledgeBase {
     pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         match statement.to_fact() {
             Some(fact) => {
-                return self.remove_fact(&fact);
+                self.remove_fact(&fact)
             }
             None => {
                 let rule = statement.to_rule().unwrap();
-                return self.remove_rule(&rule);
+                self.remove_rule(&rule)
             }
         }
     }
@@ -481,7 +488,7 @@ impl KnowledgeBase {
             .entry(fact_ref.pred.clone())
             .or_insert(Vec::new());
 
-        if args_vec.len() == 0 {
+        if args_vec.is_empty() {
             for _ in 0..fact_ref.args.len() {
                 args_vec.push(HashMap::new());
             }
@@ -544,7 +551,7 @@ impl KnowledgeBase {
                 }
 
                 // retract facts supported by this fact
-                for f in self.facts.clone().iter() {
+                for f in &self.facts.clone() {
                     println!("fact being supported: {:?}\n\n", f);
                     for i in 0..f.supported_by.len() {
                         if fact_reference == f.supported_by[i].0 {
@@ -600,7 +607,7 @@ impl KnowledgeBase {
 
             Some(rule_reference) => {
                 // retract facts supported by this rule
-                for f in self.facts.clone().iter() {
+                for f in &self.facts.clone() {
                     for i in 0..f.supported_by.len() {
                         if rule_reference == f.supported_by[i].1 {
                             Rc::make_mut(&mut f.clone()).supported_by.remove(i);
@@ -610,7 +617,7 @@ impl KnowledgeBase {
                 }
 
                 // retract rules supported by this rule
-                for r in self.rules.clone().iter() {
+                for r in &self.rules.clone() {
                     for i in 0..r.supported_by.len() {
                         if rule_reference == r.supported_by[i].1 {
                             Rc::make_mut(&mut r.clone()).supported_by.remove(i);
@@ -641,7 +648,7 @@ impl KnowledgeBase {
     }
 
     // function that implements inference by forward chaining
-    fn infer(&mut self, mut fact: Rc<Fact>, rule: Rc<Rule>) {
+    fn infer(&mut self, fact: Rc<Fact>, rule: Rc<Rule>) {
         // Inference by Forward Chaining
         if rule.lhs.len() == 1 {
             let lhs = &rule.lhs[0];
@@ -697,7 +704,7 @@ impl KnowledgeBase {
         bindings: &HashMap<Symbol, Symbol>,
     ) -> Fact {
         let mut args: Vec<Symbol> = Vec::new();
-        for symbol in fact.args.iter() {
+        for symbol in &fact.args {
             if symbol.is_var() {
                 if !bindings.contains_key(symbol) {
                     args.push(symbol.clone());
@@ -709,18 +716,18 @@ impl KnowledgeBase {
             }
         }
         match support {
-            Some(sup) => return Fact::new(fact.pred.clone(), args, vec![sup]),
-            None => return Fact::new(fact.pred.clone(), args, vec![]),
+            Some(sup) => Fact::new(fact.pred.clone(), args, vec![sup]),
+            None => Fact::new(fact.pred.clone(), args, vec![]),
         }
     }
 
     fn has_var(&self, fact: &Fact) -> bool {
-        for symbol in fact.args.iter() {
+        for symbol in &fact.args {
             if symbol.is_var() {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     /// Query a knowledge base to find all possible bindings to variables in the fact
@@ -754,7 +761,7 @@ impl KnowledgeBase {
 
         for matching_fact in self.get_query_facts(f) {
             let mut curr_binding = vec![];
-            for i in query_indices.iter() {
+            for i in &query_indices {
                 curr_binding.push((f.args[*i].clone(), matching_fact.args[*i].clone()));
             }
             bindings.push(curr_binding);

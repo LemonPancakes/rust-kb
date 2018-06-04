@@ -26,7 +26,10 @@ fn main() {
 //        println!("");
     let mut kb = KnowledgeBase::new();
     if let Ok(fact) = kb.create_fact("fact: (isa box hello);") {
-        kb.assert(fact);
+        match kb.assert(fact) {
+            Ok(_) => {},
+            Err(_) => {},
+        }
 
     }
 

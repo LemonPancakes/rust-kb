@@ -7,6 +7,7 @@ pub struct Symbol(Rc<str>);
 
 impl Symbol {
     // Differentiates between variables and normal statements
+    #[inline]
     pub fn is_var(&self) -> bool {
         &self.0[..1] == "?"
     }
