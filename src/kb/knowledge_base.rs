@@ -13,7 +13,9 @@ use std::rc::Rc;
 ///
 ///  # Example
 ///
-/// ``` ignore,
+/// ```
+/// use rust_kb::kb::knowledge_base::KnowledgeBase;
+///
 /// let mut kb = KnowledgeBase::new();
 /// match kb.create_fact("fact: (isa square rectangle);") {
 ///     Ok(fact) => { /* Here you can use the fact object */ },
@@ -89,7 +91,9 @@ impl Fact {
 ///
 ///  # Example
 ///
-/// ``` ignore,
+/// ```
+/// use rust_kb::kb::knowledge_base::KnowledgeBase;
+///
 /// let mut kb = KnowledgeBase::new();
 /// match kb.create_rule("rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z);") {
 ///     Ok(rule) => { /* Here you can use the rule object */ },
@@ -216,7 +220,9 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ``` ignore,
+    /// ```
+    /// use rust_kb::kb::knowledge_base::KnowledgeBase;
+    ///
     /// let mut kb = KnowledgeBase::new();
     /// // kb knows nothing and all asks will return false
     /// ```
@@ -275,7 +281,7 @@ impl KnowledgeBase {
     ///
     ///  # Proper knowledge base delimiters
     ///
-    /// ``` ignore,
+    /// ``` txt
     /// kb {
     ///     ...
     /// }
@@ -287,7 +293,7 @@ impl KnowledgeBase {
     ///
     /// # Proper fact syntax
     ///
-    /// ``` ignore,
+    /// ``` txt
     /// kb {
     ///     fact: (isa cube box)
     ///     fact: (isa box container)
@@ -303,7 +309,7 @@ impl KnowledgeBase {
     ///
     /// # Proper knowledge base file format
     ///
-    /// ``` ignore,
+    /// ``` txt
     /// kb {
     ///     fact: (isa cube box)
     ///     fact: (isa box container)
@@ -315,6 +321,8 @@ impl KnowledgeBase {
     ///  # Example
     ///
     /// ``` ignore,
+    /// use rust_kb::kb::knowledge_base::KnowledgeBase;
+    ///
     /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
     ///
     /// // The knowledge base now has all facts and rules from the file
@@ -331,7 +339,9 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ``` ignore,
+    /// ```
+    /// use rust_kb::kb::knowledge_base::KnowledgeBase;
+    ///
     /// let mut kb = KnowledgeBase::new();
     /// match kb.create_fact("fact: (isa square rectangle);") {
     ///     Ok(fact) => { /* Will execute this branch */ },
@@ -343,6 +353,22 @@ impl KnowledgeBase {
         Ok(Fact::from(&pf,&mut self.symbols))
     }
 
+    /// Attempts to create a rule from a given string slice.
+    ///
+    /// If the rule is ill-formatted, the function will return an error. In this context, the
+    /// fact must be terminated by a semicolon.
+    ///
+    ///  # Example
+    ///
+    /// ```
+    /// use rust_kb::kb::knowledge_base::KnowledgeBase;
+    ///
+    /// let mut kb = KnowledgeBase::new();
+    /// match kb.create_rule("rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z);") {
+    ///     Ok(fact) => { /* Will execute this branch */ },
+    ///     Err(_) => { /* Will not execute this branch, because of proper format */ },
+    /// }
+    /// ```
     pub fn create_rule(&mut self,rule : &str) -> Result<Rule, String> {
         let pr = parse_rule(rule.as_bytes())?;
         Ok(Rule::from(&pr,&mut self.symbols))
@@ -360,7 +386,9 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ``` ignore,
+    /// ```
+    /// use rust_kb::kb::knowledge_base::KnowledgeBase;
+    ///
     /// let mut kb = KnowledgeBase::new();
     /// match kb.create_fact("fact: (isa square rectangle);") {
     ///     Ok(fact) => { kb.assert(fact); },
@@ -401,10 +429,15 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ``` ignore,
-    /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
+    /// ```
+    /// use rust_kb::kb::knowledge_base::{KnowledgeBase,Fact};
+    ///
+    /// let mut kb = KnowledgeBase::new();
+    ///
+    /// // Add to the knowledge base
+    ///
     /// if let Ok(fact) = kb.create_fact("fact: (isa square rectangle);") {
-    ///     kb.retract(&fact);
+    ///     kb.retract(fact);
     /// }
     /// ```
     pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
@@ -423,8 +456,10 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ``` ignore,
-    /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
+    /// ```
+    /// use rust_kb::kb::knowledge_base::KnowledgeBase;
+    ///
+    /// let mut kb = KnowledgeBase::new();
     /// if let Ok(fact) = kb.create_fact("fact: (isa square rectangle);") {
     ///     kb.ask(&fact);
     /// }
@@ -680,8 +715,12 @@ impl KnowledgeBase {
     ///
     /// # Example
     ///
-    /// ``` ignore,
-    /// let kb = KnowledgeBase::from_file("initial_state.kb");
+    /// ```
+    /// use rust_kb::kb::knowledge_base::KnowledgeBase;
+    ///
+    /// let mut kb = KnowledgeBase::new();
+    ///
+    /// // Fill the knowledge base
     ///
     /// if let Ok(fact) = kb.create_fact("fact: (isa ?object rectangle);") {
     ///     let result = kb.query(&fact);
