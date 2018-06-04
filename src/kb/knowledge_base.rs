@@ -13,7 +13,7 @@ use std::rc::Rc;
 ///
 ///  # Example
 ///
-/// ```
+/// ``` ignore,
 /// let mut kb = KnowledgeBase::new();
 /// match kb.create_fact("fact: (isa square rectangle);") {
 ///     Ok(fact) => { /* Here you can use the fact object */ },
@@ -65,6 +65,15 @@ impl Fact {
 
         Fact::new(pred, args, vec![])
     }
+
+    fn contains_variable(&self) -> bool {
+        for s in self.args.iter() {
+            if s.is_var() {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 /// Defines a knowledge base fact that can be inferred, given 1 or more facts as the premise
@@ -80,7 +89,7 @@ impl Fact {
 ///
 ///  # Example
 ///
-/// ```
+/// ``` ignore,
 /// let mut kb = KnowledgeBase::new();
 /// match kb.create_rule("rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z);") {
 ///     Ok(rule) => { /* Here you can use the rule object */ },
@@ -207,7 +216,7 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ```
+    /// ``` ignore,
     /// let mut kb = KnowledgeBase::new();
     /// // kb knows nothing and all asks will return false
     /// ```
@@ -247,7 +256,10 @@ impl KnowledgeBase {
         let mut symbols = SymbolTable::new();
 
         for parsed_fact in pkb.facts.iter() {
-            facts.push(Fact::from(&parsed_fact, &mut symbols));
+            let f = Fact::from(&parsed_fact, &mut symbols);
+            if !f.contains_variable() {
+                facts.push(f);
+            }
         }
 
         for parsed_rule in pkb.rules.iter() {
@@ -263,7 +275,7 @@ impl KnowledgeBase {
     ///
     ///  # Proper knowledge base delimiters
     ///
-    /// ```
+    /// ``` ignore,
     /// kb {
     ///     ...
     /// }
@@ -275,7 +287,7 @@ impl KnowledgeBase {
     ///
     /// # Proper fact syntax
     ///
-    /// ```
+    /// ``` ignore,
     /// kb {
     ///     fact: (isa cube box)
     ///     fact: (isa box container)
@@ -291,7 +303,7 @@ impl KnowledgeBase {
     ///
     /// # Proper knowledge base file format
     ///
-    /// ```
+    /// ``` ignore,
     /// kb {
     ///     fact: (isa cube box)
     ///     fact: (isa box container)
@@ -302,7 +314,7 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ```
+    /// ``` ignore,
     /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
     ///
     /// // The knowledge base now has all facts and rules from the file
@@ -319,7 +331,7 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ```
+    /// ``` ignore,
     /// let mut kb = KnowledgeBase::new();
     /// match kb.create_fact("fact: (isa square rectangle);") {
     ///     Ok(fact) => { /* Will execute this branch */ },
@@ -348,7 +360,7 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ```
+    /// ``` ignore,
     /// let mut kb = KnowledgeBase::new();
     /// match kb.create_fact("fact: (isa square rectangle);") {
     ///     Ok(fact) => { kb.assert(fact); },
@@ -357,6 +369,7 @@ impl KnowledgeBase {
     /// ```
     pub fn assert<T: Statement>(&mut self, statement: T) -> Result<Rc<Statement>, String> {
         match statement.to_fact() {
+            //TODO: Check if fact has bound variables
             Some(fact) => match self.add_fact(fact) {
                 Ok(rc_fact) => {
                     for rule in self.rules.clone().iter() {
@@ -388,9 +401,9 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ```
+    /// ``` ignore,
     /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
-    /// if let Some(fact) = kb.create_fact("fact: (isa square rectangle);") {
+    /// if let Ok(fact) = kb.create_fact("fact: (isa square rectangle);") {
     ///     kb.retract(&fact);
     /// }
     /// ```
@@ -410,9 +423,9 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ```
+    /// ``` ignore,
     /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
-    /// if let Some(fact) = kb.create_fact("fact: (isa square rectangle);") {
+    /// if let Ok(fact) = kb.create_fact("fact: (isa square rectangle);") {
     ///     kb.ask(&fact);
     /// }
     /// ```
@@ -608,7 +621,7 @@ impl KnowledgeBase {
         }
     }
 
-    pub fn try_bind(&self, f1: &Fact, f2: &Fact) -> Result<HashMap<Symbol, Symbol>, String> {
+    fn try_bind(&self, f1: &Fact, f2: &Fact) -> Result<HashMap<Symbol, Symbol>, String> {
         if f1.pred != f2.pred || f1.args.len() != f2.args.len() {
             return Err("bind failed".to_string());
         }
@@ -667,10 +680,10 @@ impl KnowledgeBase {
     ///
     /// # Example
     ///
-    /// ```
+    /// ``` ignore,
     /// let kb = KnowledgeBase::from_file("initial_state.kb");
     ///
-    /// if let Some(fact) = kb.create_fact("fact: (isa ?object rectangle);") {
+    /// if let Ok(fact) = kb.create_fact("fact: (isa ?object rectangle);") {
     ///     let result = kb.query(&fact);
     ///     // result is now a vector of all bindings found in the knowledge base.
     /// }
@@ -745,61 +758,56 @@ mod knowledge_base_basic_tests {
 
     #[test]
     fn test_add_fact() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let new_fact = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("Bob"), kb.intern_string("boy")],
-            vec![],
-        );
+        let mut kb = KnowledgeBase::new();
 
-        match kb.add_fact(new_fact.clone()) {
-            Ok(_) => {}
-            Err(e) => println!("{}", e),
+        if let Ok(new_fact) = kb.create_fact("fact: (isa Bob boy);") {
+            match kb.add_fact(new_fact.clone()) {
+                Ok(_) => {}
+                Err(e) => println!("{}", e),
+            }
+
+            assert_eq!(kb.contains_fact(&new_fact), true);
         }
-
-        assert_eq!(kb.contains_fact(&new_fact), true);
     }
 
     #[test]
     fn test_remove_fact() {
-        let mut st = SymbolTable::new();
-        let new_fact = Fact::new(
-            st.intern("isa"),
-            vec![st.intern("Bob"), st.intern("boy")],
-            vec![],
-        );
-        let mut kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], st);
-        match kb.remove_fact(&new_fact) {
-            Ok(_) => {}
-            Err(e) => println!("{}", e),
-        }
+        let mut kb = KnowledgeBase::new();
 
-        assert_eq!(kb.contains_fact(&new_fact), false);
-        assert_eq!(kb.facts.is_empty(), true);
+        if let Ok(new_fact) = kb.create_fact("fact: (isa Bob boy);") {
+            match kb.add_fact(new_fact.clone()) {
+                Ok(_) => {}
+                Err(e) => println!("{}", e),
+            }
+
+            match kb.remove_fact(&new_fact) {
+                Ok(_) => {}
+                Err(e) => println!("{}", e),
+            }
+
+            assert_eq!(kb.contains_fact(&new_fact), false);
+            assert_eq!(kb.facts.is_empty(), true);
+        }
     }
 
     #[test]
     fn test_ask_fact_already_in_kb() {
-        let mut st = SymbolTable::new();
-        let new_fact = Fact::new(
-            st.intern("isa"),
-            vec![st.intern("Bob"), st.intern("boy")],
-            vec![],
-        );
-        let kb = KnowledgeBase::new(vec![new_fact.clone()], vec![], st);
-        assert_eq!(kb.ask(&new_fact), Ok(true))
+        let mut kb = KnowledgeBase::new();
+        if let Ok(new_fact) = kb.create_fact("fact: (isa Bob boy);") {
+            match kb.add_fact(new_fact.clone()) {
+                Ok(_) => {}
+                Err(e) => println!("{}", e),
+            }
+            assert_eq!(kb.ask(&new_fact), Ok(true));
+        }
     }
 
     #[test]
     fn test_ask_fact_not_in_fb() {
-        let mut st = SymbolTable::new();
-        let new_fact = Fact::new(
-            st.intern("isa"),
-            vec![st.intern("Bob"), st.intern("boy")],
-            vec![],
-        );
-        let kb = KnowledgeBase::new(vec![], vec![], st);
-        assert_eq!(kb.ask(&new_fact), Ok(false));
+        let mut kb = KnowledgeBase::new();
+        if let Ok(new_fact) = kb.create_fact("fact: (isa Bob boy);") {
+            assert_eq!(kb.ask(&new_fact), Ok(false));
+        }
     }
 }
 
@@ -809,275 +817,141 @@ mod inference_tests {
 
     #[test]
     fn test_assert_and_infer() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let new_fact = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("Bob"), kb.intern_string("boy")],
-            vec![],
-        );
-
-        let rc_fact = match kb.assert(new_fact.clone()) {
-            Ok(_f) => Some(_f),
-            Err(e) => {
-                println!("{}", e);
-                None
+        let mut kb = KnowledgeBase::new();
+        if let Ok(new_fact) = kb.create_fact("fact: (isa Bob boy);") {
+            match kb.assert(new_fact.clone()) {
+                Ok(_) => {}
+                Err(e) => println!("{}", e),
             }
-        };
 
-        let new_rule = Rule::new(
-            vec![
-                Fact::new(
-                    kb.intern_string("isa"),
-                    vec![kb.intern_string("?x"), kb.intern_string("boy")],
-                    vec![],
-                ),
-            ],
-            Fact::new(
-                kb.intern_string("cool"),
-                vec![kb.intern_string("?x")],
-                vec![],
-            ),
-            vec![],
-        );
+            if let Ok(new_rule) = kb.create_rule("rule: ((isa ?x boy)) -> (cool ?x);") {
 
-        let rc_rule = match kb.assert(new_rule.clone()) {
-            Ok(_r) => Some(_r),
-            Err(e) => {
-                println!("{}", e);
-                None
+                match kb.assert(new_rule.clone()) {
+                    Ok(_) => {}
+                    Err(e) => println!("{}", e),
+                }
+
+                if let Ok(result_fact) = kb.create_fact("fact: (cool Bob);") {
+                    assert_eq!(kb.contains_fact(&new_fact), true);
+                    assert_eq!(kb.contains_rule(&new_rule), true);
+                    assert_eq!(kb.contains_fact(&result_fact), true);
+                }
             }
-        };
-
-        let result_fact = Fact::new(
-            kb.intern_string("cool"),
-            vec![kb.intern_string("Bob")],
-            vec![
-                (
-                    Rc::new(rc_fact.unwrap().to_fact().unwrap()),
-                    Rc::new(rc_rule.unwrap().to_rule().unwrap()),
-                ),
-            ],
-        );
-        assert_eq!(kb.contains_fact(&new_fact), true);
-        assert_eq!(kb.contains_rule(&new_rule), true);
-        assert_eq!(kb.contains_fact(&result_fact), true);
+        }
     }
 
     #[test]
     fn test_infer_rule() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let new_fact = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("Bob"), kb.intern_string("boy")],
-            vec![],
-        );
-
-        let rc_fact = match kb.assert(new_fact.clone()) {
-            Ok(_f) => Some(_f),
-            Err(e) => {
-                println!("{}", e);
-                None
+        let mut kb = KnowledgeBase::new();
+        if let Ok(new_fact) = kb.create_fact("fact: (isa Bob boy);") {
+            match kb.assert(new_fact.clone()) {
+                Ok(_) => {}
+                Err(e) => println!("{}", e),
             }
-        };
 
-        let new_rule = Rule::new(
-            vec![
-                Fact::new(
-                    kb.intern_string("isa"),
-                    vec![kb.intern_string("?x"), kb.intern_string("boy")],
-                    vec![],
-                ),
-                Fact::new(
-                    kb.intern_string("was"),
-                    vec![kb.intern_string("?x"), kb.intern_string("?y")],
-                    vec![],
-                ),
-            ],
-            Fact::new(
-                kb.intern_string("cool"),
-                vec![kb.intern_string("?y")],
-                vec![],
-            ),
-            vec![],
-        );
+            if let Ok(new_rule) = kb.create_rule("rule: ((isa ?x boy) (was ?x ?y)) -> (cool ?y);") {
+                match kb.assert(new_rule.clone()) {
+                    Ok(_) => {}
+                    Err(e) => println!("{}", e),
+                }
 
-        let rc_rule = match kb.assert(new_rule.clone()) {
-            Ok(_r) => Some(_r),
-            Err(e) => {
-                println!("{}", e);
-                None
+                if let Ok(result_rule) = kb.create_rule("rule: ((was Bob ?y)) -> (cool ?y);") {
+                    assert_eq!(kb.contains_fact(&new_fact), true);
+                    assert_eq!(kb.contains_rule(&new_rule), true);
+                    assert_eq!(kb.contains_rule(&result_rule), true);
+                }
             }
-        };
-
-        let result_rule = Rule::new(
-            vec![
-                Fact::new(
-                    kb.intern_string("was"),
-                    vec![kb.intern_string("Bob"), kb.intern_string("?y")],
-                    vec![],
-                ),
-            ],
-            Fact::new(
-                kb.intern_string("cool"),
-                vec![kb.intern_string("?y")],
-                vec![],
-            ),
-            vec![
-                (
-                    Rc::new(rc_fact.unwrap().to_fact().unwrap()),
-                    Rc::new(rc_rule.unwrap().to_rule().unwrap()),
-                ),
-            ],
-        );
-
-        for rule in kb.rules.iter() {
-            println!("{:?}\n\n{:?}\n", rule.rhs, rule.supported_by);
         }
-
-        assert_eq!(kb.contains_fact(&new_fact), true);
-        assert_eq!(kb.contains_rule(&new_rule), true);
-        assert_eq!(kb.contains_rule(&result_rule), true);
     }
 
     #[test]
     fn test_bind() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let fact1 = Rc::new(Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("Bob"), kb.intern_string("boy")],
-            vec![],
-        ));
+        let mut kb = KnowledgeBase::new();
+        if let Ok(fact1) = kb.create_fact("fact: (isa Bob boy);") {
+            if let Ok(fact2) = kb.create_fact("fact: (isa ?x boy);") {
 
-        let fact2 = Rc::new(Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("?x"), kb.intern_string("boy")],
-            vec![],
-        ));
+                let bindings = match kb.try_bind(&fact1, &fact2) {
+                    Ok(lst) => lst,
+                    Err(e) => {
+                        println!("{}", e);
+                        HashMap::new()
+                    }
+                };
 
-        let bindings = match kb.try_bind(&fact1, &fact2) {
-            Ok(lst) => lst,
-            Err(e) => {
-                println!("{}", e);
-                HashMap::new()
+                assert!(bindings.contains_key(&kb.intern_string("?x")));
+
+                if let Ok(new_rule) = kb.create_rule("rule: ((isa ?x boy)) -> (cool ?x);") {
+                    let result_fact = kb.apply_bindings(&new_rule.rhs, None,&bindings);
+
+                    assert_eq!(
+                        result_fact,
+                        Fact::new(kb.intern_string("cool"), vec![kb.intern_string("Bob")],vec![])
+                    );
+                }
             }
-        };
-
-        assert!(bindings.contains_key(&kb.intern_string("?x")));
-
-        let new_rule = Rc::new(Rule::new(
-            vec![
-                Fact::new(
-                    kb.intern_string("isa"),
-                    vec![kb.intern_string("?x"), kb.intern_string("boy")],
-                    vec![],
-                ),
-            ],
-            Fact::new(
-                kb.intern_string("cool"),
-                vec![kb.intern_string("?x")],
-                vec![],
-            ),
-            vec![],
-        ));
-
-        let support = (fact1.clone(), new_rule.clone());
-        let result_fact = kb.apply_bindings(&new_rule.rhs, Some(support.clone()), &bindings);
-
-        assert_eq!(
-            result_fact,
-            Fact::new(
-                kb.intern_string("cool"),
-                vec![kb.intern_string("Bob")],
-                vec![support]
-            )
-        );
+        }
     }
 
     #[test]
     fn test_has_var() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
+        let mut kb = KnowledgeBase::new();
 
-        let fact = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("?x"), kb.intern_string("boy")],
-            vec![],
-        );
+        if let Ok(fact) = kb.create_fact("fact: (isa ?x boy);") {
+            assert_eq!(true, kb.has_var(&fact));
 
-        assert_eq!(true, kb.has_var(&fact));
-
-        let fact = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("Bob"), kb.intern_string("boy")],
-            vec![],
-        );
-
-        assert_eq!(false, kb.has_var(&fact));
+            if let Ok(fact2) =  kb.create_fact("fact: (isa Bob boy);") {
+                assert_eq!(false, kb.has_var(&fact2));
+            }
+        }
     }
 
     #[test]
     fn test_retract_inferred() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let new_fact = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("Bob"), kb.intern_string("boy")],
-            vec![],
-        );
+        let mut kb = KnowledgeBase::new();
 
-        let rc_fact = match kb.assert(new_fact.clone()) {
-            Ok(_f) => Some(_f),
-            Err(e) => {
-                println!("{}", e);
-                None
+        if let Ok(new_fact) = kb.create_fact("fact: (isa Bob boy);") {
+            let rc_fact = match kb.assert(new_fact.clone()) {
+                Ok(_f) => Some(_f),
+                Err(e) => {
+                    println!("{}", e);
+                    None
+                }
+            };
+
+            if let Ok(new_rule) = kb.create_rule("rule: ((isa ?x boy)) -> (cool ?x);") {
+                let rc_rule = match kb.assert(new_rule.clone()) {
+                    Ok(_r) => Some(_r),
+                    Err(e) => {
+                        println!("{}", e);
+                        None
+                    }
+                };
+
+                let result_fact = Fact::new(
+                    kb.intern_string("cool"),
+                    vec![kb.intern_string("Bob")],
+                    vec![
+                        (
+                            Rc::new(rc_fact.unwrap().to_fact().unwrap()),
+                            Rc::new(rc_rule.unwrap().to_rule().unwrap()),
+                        ),
+                    ],
+                );
+                assert_eq!(kb.contains_fact(&new_fact), true);
+                assert_eq!(kb.contains_rule(&new_rule), true);
+                assert_eq!(kb.contains_fact(&result_fact), true);
+
+                for f in kb.facts.iter() {
+                    println!("{:?}\n\n", f)
+                }
+
+                assert!(kb.retract(new_fact.clone()).is_ok());
+
+                assert_eq!(kb.contains_fact(&new_fact), false);
+                assert_eq!(kb.contains_rule(&new_rule), true);
+                assert_eq!(kb.contains_fact(&result_fact), false);
             }
-        };
-
-        let new_rule = Rule::new(
-            vec![
-                Fact::new(
-                    kb.intern_string("isa"),
-                    vec![kb.intern_string("?x"), kb.intern_string("boy")],
-                    vec![],
-                ),
-            ],
-            Fact::new(
-                kb.intern_string("cool"),
-                vec![kb.intern_string("?x")],
-                vec![],
-            ),
-            vec![],
-        );
-
-        let rc_rule = match kb.assert(new_rule.clone()) {
-            Ok(_r) => Some(_r),
-            Err(e) => {
-                println!("{}", e);
-                None
-            }
-        };
-
-        let result_fact = Fact::new(
-            kb.intern_string("cool"),
-            vec![kb.intern_string("Bob")],
-            vec![
-                (
-                    Rc::new(rc_fact.unwrap().to_fact().unwrap()),
-                    Rc::new(rc_rule.unwrap().to_rule().unwrap()),
-                ),
-            ],
-        );
-        assert_eq!(kb.contains_fact(&new_fact), true);
-        assert_eq!(kb.contains_rule(&new_rule), true);
-        assert_eq!(kb.contains_fact(&result_fact), true);
-
-        for f in kb.facts.iter() {
-            println!("{:?}\n\n", f)
         }
-
-        assert!(kb.retract(new_fact.clone()).is_ok());
-
-        assert_eq!(kb.contains_fact(&new_fact), false);
-        assert_eq!(kb.contains_rule(&new_rule), true);
-        assert_eq!(kb.contains_fact(&result_fact), false);
     }
 }
 
@@ -1087,88 +961,70 @@ mod query_tests {
 
     #[test]
     fn empty_test() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let f = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("?a"), kb.intern_string("?b")],
-            vec![],
-        );
-        let a = kb.query(&f);
+        let mut kb = KnowledgeBase::new();
+        if let Ok(f) = kb.create_fact("fact: (isa ?a ?b);") {
+            let a = kb.query(&f);
+            let b: Vec<QueryBinding> = vec![];
 
-        let b: Vec<QueryBinding> = vec![];
-        assert_eq!(a, b);
+            assert_eq!(a, b);
+        }
     }
 
     #[test]
     fn single_binding_test() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let facts = vec![
-            vec!["isa", "a", "b"],
-            vec!["isa", "c", "d"],
-            vec!["isa", "a", "c"],
-            vec!["isa", "a", "d"],
-            vec!["isa", "f", "g"],
-        ];
+        let mut kb = KnowledgeBase::new();
 
-        for fact in facts {
-            let f = Fact::new(
-                kb.intern_string(fact[0]),
-                vec![kb.intern_string(fact[1]), kb.intern_string(fact[2])],
-                vec![],
-            );
-            match kb.assert(f) {
-                Ok(_) => {}
-                Err(e) => println!("{}", e),
+        if let Ok(f1) = kb.create_fact("fact: (isa a b);") {
+            if let Ok(f2) = kb.create_fact("fact: (isa c d);") {
+                if let Ok(f3) = kb.create_fact("fact: (isa a c);") {
+                    if let Ok(f4) = kb.create_fact("fact: (isa a d);") {
+                        if let Ok(f5) = kb.create_fact("fact: (isa f g);") {
+                            let facts = vec![f1,f2,f3,f4,f5];
+
+                            for fact in facts.iter() {
+                                match kb.assert(fact.clone()) {
+                                    Ok(_) => {},
+                                    Err(e) => println!("{}", e)
+                                }
+                            }
+
+                            if let Ok(f) = kb.create_fact("fact: (isa f ?b);") {
+                                let a = kb.query(&f);
+                                let b: Vec<QueryBinding> = vec![vec![(kb.intern_string("?b"), kb.intern_string("g"))]];
+
+                                assert_eq!(a, b);
+                            }
+                        }
+                    }
+                }
             }
         }
-
-        let f = Fact::new(
-            kb.intern_string("isa"),
-            vec![kb.intern_string("f"), kb.intern_string("?b")],
-            vec![],
-        );
-        let a = kb.query(&f);
-        let b: Vec<QueryBinding> = vec![vec![(kb.intern_string("?b"), kb.intern_string("g"))]];
-        assert_eq!(a, b);
     }
 
     #[test]
     fn multi_binding_test() {
-        let mut kb = KnowledgeBase::new(vec![], vec![], SymbolTable::new());
-        let facts = vec![
-            vec!["isa", "a", "b", "c"],
-            vec!["isa", "c", "d", "c"],
-            vec!["isa", "a", "c", "c"],
-            vec!["isa", "a", "d", "c"],
-            vec!["isa", "f", "g", "c"],
-        ];
+        let mut kb = KnowledgeBase::new();
+        if let Ok(f1) = kb.create_fact("fact: (isa a b c);") {
+            if let Ok(f2) = kb.create_fact("fact: (isa c d c);") {
+                if let Ok(f3) = kb.create_fact("fact: (isa a c c);") {
+                    if let Ok(f4) = kb.create_fact("fact: (isa a d c);") {
+                        if let Ok(f5) = kb.create_fact("fact: (isa f g c);") {
+                            let facts = vec![f1, f2, f3, f4, f5];
 
-        for fact in facts {
-            let f = Fact::new(
-                kb.intern_string(fact[0]),
-                vec![
-                    kb.intern_string(fact[1]),
-                    kb.intern_string(fact[2]),
-                    kb.intern_string(fact[3]),
-                ],
-                vec![],
-            );
-            match kb.assert(f) {
-                Ok(_) => {}
-                Err(e) => println!("{}", e),
+                            for fact in facts.iter() {
+                                match kb.assert(fact.clone()) {
+                                    Ok(_) => {},
+                                    Err(e) => println!("{}", e)
+                                }
+                            }
+
+                            if let Ok(f) = kb.create_fact("fact: (isa ?a ?b c);") {
+                                assert_eq!(kb.query(&f).len(), 5);
+                            }
+                        }
+                    }
+                }
             }
         }
-
-        let f = Fact::new(
-            kb.intern_string("isa"),
-            vec![
-                kb.intern_string("?a"),
-                kb.intern_string("?b"),
-                kb.intern_string("c"),
-            ],
-            vec![],
-        );
-
-        assert_eq!(kb.query(&f).len(), 5);
     }
 }

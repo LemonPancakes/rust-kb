@@ -84,7 +84,7 @@ named!(fact<&[u8], ParsedFact>,
         tag!("fact:") >>
         tag!("(") >>
         pred: alpha >>
-        args: many1!(map!(name, |c| String::from_utf8(c.to_vec()).unwrap())) >>
+        args: many1!(map!(alt!(name | var), |c| String::from_utf8(c.to_vec()).unwrap())) >>
         tag!(")") >>
         (ParsedFact::new(String::from_utf8(pred.to_vec()).unwrap(), args))
     ))
