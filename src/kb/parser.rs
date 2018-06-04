@@ -3,6 +3,7 @@
 use nom::*;
 use std::fs;
 
+
 #[derive(Debug, PartialEq)]
 pub struct ParsedKnowledgeBase {
     pub facts: Vec<ParsedFact>,
@@ -17,8 +18,8 @@ impl ParsedKnowledgeBase {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ParsedFact {
-    pub pred: String,      // TODO Rc<Predicate> (maybe?)
-    pub args: Vec<String>, // TODO Vec<Rc<Argument>> (maybe?)
+    pub pred: String,
+    pub args: Vec<String>,
 }
 
 impl ParsedFact {
@@ -45,6 +46,20 @@ pub fn parse_kb_from_file(filename: &str) -> Result<ParsedKnowledgeBase, String>
     match kb(&file[..]) {
         Ok(tuple) => Ok(tuple.1),
         Err(_) => Err(String::from("Failed to parse kb from file")),
+    }
+}
+
+pub fn parse_fact(f : &[u8]) -> Result<ParsedFact, String> {
+    match fact(f) {
+        Ok(tuple) => Ok(tuple.1),
+        Err(_) => Err(String::from("Failed to parse fact from string")),
+    }
+}
+
+pub fn parse_rule(r : &[u8]) -> Result<ParsedRule, String> {
+    match rule(r) {
+        Ok(tuple) => Ok(tuple.1),
+        Err(_) => Err(String::from("Failed to parse rule from string")),
     }
 }
 
@@ -96,7 +111,7 @@ named!(rule<&[u8], ParsedRule>,
     ))
 );
 
-named!(pub kb<&[u8], ParsedKnowledgeBase>,
+named!(kb<&[u8], ParsedKnowledgeBase>,
     ws!(do_parse!(
         tag!("kb") >>
         tag!("{") >>

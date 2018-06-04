@@ -1,36 +1,35 @@
 #![allow(dead_code)]
 
-use kb::parser::{parse_kb_from_file, ParsedFact, ParsedKnowledgeBase, ParsedRule};
+use kb::parser::{parse_kb_from_file, parse_fact, parse_rule, ParsedFact, ParsedKnowledgeBase, ParsedRule};
 use kb::symbols::{Symbol, SymbolTable};
 
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-// TODO Eventually maybe(?) want to use these structs
-// (Argument, Predicate) to avoid
-// having so many copies of the same data
-// If not, just delete.
-//#[derive(Debug, PartialEq, Clone)]
-//pub struct Argument {
-//    pub name: String,
-//}
-//
-//#[derive(Debug, PartialEq, Clone)]
-//pub struct Predicate {
-//    pub name: String,
-//}
-
 /// Defines a fact relationship between two or more arguments
+///
+/// A fact can only be created by an instance of a knowledge base. This means that facts cannot be
+/// created on its own, or passed from one knowledge base to another.
+///
+///  # Example
+///
+/// ```
+/// let mut kb = KnowledgeBase::new();
+/// match kb.create_fact("fact: (isa square rectangle);") {
+///     Ok(fact) => { /* Here you can use the fact object */ },
+///     Err(_) => {},
+/// }
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Fact {
-    pub pred: Symbol,
-    pub args: Vec<Symbol>,
-    pub asserted: bool,
-    pub supported_by: Vec<(Rc<Fact>, Rc<Rule>)>,
+    pred: Symbol,
+    args: Vec<Symbol>,
+    asserted: bool,
+    supported_by: Vec<(Rc<Fact>, Rc<Rule>)>,
 }
 
 impl Fact {
-    pub fn new(pred: Symbol, args: Vec<Symbol>, supported_by: Vec<(Rc<Fact>, Rc<Rule>)>) -> Fact {
+    fn new(pred: Symbol, args: Vec<Symbol>, supported_by: Vec<(Rc<Fact>, Rc<Rule>)>) -> Fact {
         let asserted = supported_by.is_empty();
         Fact {
             pred,
@@ -40,7 +39,8 @@ impl Fact {
         }
     }
 
-    pub fn from(pf: &ParsedFact, symbols: &mut SymbolTable) -> Fact {
+    /// Creates a new fact from the parser output and a given symbol table
+    fn from(pf: &ParsedFact, symbols: &mut SymbolTable) -> Fact {
         let pred = symbols.intern(&pf.pred);
         let mut args = Vec::new();
         for parg in pf.args.iter() {
@@ -50,7 +50,9 @@ impl Fact {
         Fact::new(pred, args, vec![])
     }
 
-    pub fn from_raw(raw_fact: &Vec<String>, symbols: &mut SymbolTable) -> Fact {
+    /// Creates a fact from a vector of Strings, each representing a token in the fact. A symbol
+    /// table must also be provided
+    fn from_raw(raw_fact: &Vec<String>, symbols: &mut SymbolTable) -> Fact {
         let mut args = Vec::new();
         let mut pred = symbols.intern("");
         for (i, item) in raw_fact.iter().enumerate() {
@@ -65,19 +67,32 @@ impl Fact {
     }
 }
 
-/// Defines a knowledge base fact that can be infered, given 1 or more facts as the premise
+/// Defines a knowledge base fact that can be inferred, given 1 or more facts as the premise
 ///
 /// Allows structures and complex dependencies to be imposed on a knowledge base without the
 /// need for every rule to be defined explictly. When a rule is added to a knowledge base,
 /// it will use logical inference by forward chaining to automatically create the implied rules.
 /// Use this if you want to impose specialized relationships that are not the default assumption
 /// for rules.
+///
+/// A rule can only be created by an instance of a knowledge base. This means that rules cannot be
+/// created on its own, or passed from one knowledge base to another.
+///
+///  # Example
+///
+/// ```
+/// let mut kb = KnowledgeBase::new();
+/// match kb.create_rule("rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z);") {
+///     Ok(rule) => { /* Here you can use the rule object */ },
+///     Err(_) => {},
+/// }
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Rule {
-    pub lhs: Vec<Fact>,
-    pub rhs: Fact,
-    pub asserted: bool,
-    pub supported_by: Vec<(Rc<Fact>, Rc<Rule>)>,
+    lhs: Vec<Fact>,
+    rhs: Fact,
+    asserted: bool,
+    supported_by: Vec<(Rc<Fact>, Rc<Rule>)>,
 }
 
 impl Rule {
@@ -92,8 +107,8 @@ impl Rule {
         }
     }
 
-    /// Create a new rule from a parsed object
-    pub fn from(pr: &ParsedRule, symbols: &mut SymbolTable) -> Rule {
+    // Create a new rule from a parsed object
+    fn from(pr: &ParsedRule, symbols: &mut SymbolTable) -> Rule {
         let mut lhs = Vec::new();
 
         for parsed_raw_fact in pr.lhs.iter() {
@@ -126,12 +141,15 @@ impl Rule {
     }
 }
 
-/// Abstraction that combines facts and rules
+/// Abstraction that encompasses facts and rules
 ///
-/// This trait allows objects to be either facts and rules, and then do case handling depending
+/// Use this trait when objects can be either facts and rules, and then do case handling depending
 /// on the specific statement passed in
 pub trait Statement {
+    /// Should return Some(Fact) when the Statement is a fact, None otherwise
     fn to_fact(&self) -> Option<Fact>;
+
+    /// Should return Some(Rule) when the Statement is a rule, None otherwise
     fn to_rule(&self) -> Option<Rule>;
 }
 
@@ -153,11 +171,11 @@ impl Statement for Rule {
     }
 }
 
-// We added these type aliases to make long types more readable
-// We are unsure if these are good/if there is a better way
-// It makes the types easier to read, but makes them more opaque
+// Type alias for an index of one argument column
 type ArgumentHash = HashMap<Symbol, Vec<Rc<Fact>>>;
-type QueryBinding = Vec<(Symbol, Symbol)>;
+
+// Type alias for a specific binding from one variable to one argument
+type QueryBinding = Vec<(Symbol,Symbol)>;
 
 /// A data structure which can take in facts and rules, and respond to logical questions and queries
 ///
@@ -168,9 +186,8 @@ type QueryBinding = Vec<(Symbol, Symbol)>;
 pub struct KnowledgeBase {
     facts: Vec<Rc<Fact>>,
     facts_map: HashMap<Symbol, Vec<ArgumentHash>>,
-
     rules: Vec<Rc<Rule>>,
-    symbols: SymbolTable, // TODO change to private eventually
+    symbols: SymbolTable,
 }
 
 impl PartialEq for KnowledgeBase {
@@ -181,8 +198,30 @@ impl PartialEq for KnowledgeBase {
 }
 
 impl KnowledgeBase {
-    /// Creates a new knowledge base with given rules and facts and a symbol table
-    pub fn new(facts: Vec<Fact>, rules: Vec<Rule>, symbols: SymbolTable) -> KnowledgeBase {
+    /// Creates a new, empty knowledge base
+    ///
+    /// This function should be used when one is programmatically building up a knowledge base and
+    /// no knowledge is known before the start of the program. If any static facts or rules are
+    /// known beforehand, a knowledge base file should be used, and KnowledgeBase::from_file() should
+    /// create the knowledge base.
+    ///
+    ///  # Example
+    ///
+    /// ```
+    /// let mut kb = KnowledgeBase::new();
+    /// // kb knows nothing and all asks will return false
+    /// ```
+    pub fn new() -> KnowledgeBase {
+        KnowledgeBase {
+            facts: Vec::new(),
+            facts_map: HashMap::new(),
+            rules: Vec::new(),
+            symbols: SymbolTable::new(),
+        }
+    }
+
+    // Creates a new knowledge base with given rules and facts and a symbol table
+    fn new_filled(facts: Vec<Fact>, rules: Vec<Rule>, symbols: SymbolTable) -> KnowledgeBase {
         let mut kb = KnowledgeBase {
             facts: Vec::new(),
             facts_map: HashMap::new(),
@@ -202,7 +241,7 @@ impl KnowledgeBase {
     }
 
     /// Creates a knowledge base from a parsed object from the crate's parser
-    pub fn from(pkb: ParsedKnowledgeBase) -> KnowledgeBase {
+    fn from(pkb: ParsedKnowledgeBase) -> KnowledgeBase {
         let mut facts = Vec::new();
         let mut rules = Vec::new();
         let mut symbols = SymbolTable::new();
@@ -215,22 +254,107 @@ impl KnowledgeBase {
             rules.push(Rule::from(&parsed_rule, &mut symbols));
         }
 
-        KnowledgeBase::new(facts, rules, symbols)
+        KnowledgeBase::new_filled(facts, rules, symbols)
     }
 
     /// Attempts to create a knowledge base from a given input file
+    ///
+    /// The input file should formatted as follows. The entire file should be surrounded by kb { ... }
+    ///
+    ///  # Proper knowledge base delimiters
+    ///
+    /// ```
+    /// kb {
+    ///     ...
+    /// }
+    /// ```
+    ///
+    /// All facts should follow. Each fact should be on its own line and be prefixed by "fact:".
+    /// Then, the fact should be left left parenthesis, the predicate, one or more arguments, and finally
+    /// a right parenthesis
+    ///
+    /// # Proper fact syntax
+    ///
+    /// ```
+    /// kb {
+    ///     fact: (isa cube box)
+    ///     fact: (isa box container)
+    ///
+    ///     ...
+    /// }
+    /// ```
+    ///
+    /// Finally, all rules should follow. Each rule should be on its own line and be prefixed by "rule:".
+    /// Then the rule should have a list of one or more facts, a right arrow (->), and finally a fact
+    /// that can be inferred. These facts should use variables to connect arguments from different
+    /// facts.
+    ///
+    /// # Proper knowledge base file format
+    ///
+    /// ```
+    /// kb {
+    ///     fact: (isa cube box)
+    ///     fact: (isa box container)
+    ///
+    ///     rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z)
+    /// }
+    /// ```
+    ///
+    ///  # Example
+    ///
+    /// ```
+    /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
+    ///
+    /// // The knowledge base now has all facts and rules from the file
+    /// ```
     pub fn from_file(filename: &str) -> Result<KnowledgeBase, String> {
         let pkb = parse_kb_from_file(filename)?;
         Ok(KnowledgeBase::from(pkb))
     }
 
-    pub fn intern_string(&mut self, name: &str) -> Symbol {
+    /// Attempts to create a fact from a given string slice.
+    ///
+    /// If the fact is ill-formatted, the function will return an error. In this context, the
+    /// fact must be terminated by a semicolon.
+    ///
+    ///  # Example
+    ///
+    /// ```
+    /// let mut kb = KnowledgeBase::new();
+    /// match kb.create_fact("fact: (isa square rectangle);") {
+    ///     Ok(fact) => { /* Will execute this branch */ },
+    ///     Err(_) => { /* Will not execute this branch, because of proper format */ },
+    /// }
+    /// ```
+    pub fn create_fact(&mut self,fact : &str) -> Result<Fact, String> {
+        let pf = parse_fact(fact.as_bytes())?;
+        Ok(Fact::from(&pf,&mut self.symbols))
+    }
+
+    pub fn create_rule(&mut self,rule : &str) -> Result<Rule, String> {
+        let pr = parse_rule(rule.as_bytes())?;
+        Ok(Rule::from(&pr,&mut self.symbols))
+    }
+
+    fn intern_string(&mut self, name: &str) -> Symbol {
         self.symbols.intern(name)
     }
 
     /// Add a fact or rule to the knowledge base
     ///
     /// This function will use inference by forward chaining to add implied facts from given rules.
+    /// An error will be returned if the statement is already present in the knowledge base. Use this
+    /// error to detect logical errors, or duplicate assertions in code.
+    ///
+    ///  # Example
+    ///
+    /// ```
+    /// let mut kb = KnowledgeBase::new();
+    /// match kb.create_fact("fact: (isa square rectangle);") {
+    ///     Ok(fact) => { kb.assert(fact); },
+    ///     Err(_) => {},
+    /// }
+    /// ```
     pub fn assert<T: Statement>(&mut self, statement: T) -> Result<Rc<Statement>, String> {
         match statement.to_fact() {
             Some(fact) => match self.add_fact(fact) {
@@ -257,7 +381,19 @@ impl KnowledgeBase {
         }
     }
 
-    /// Remove a fact or rule from the knowledge base
+    /// Remove a fact or rule from the knowledge base.
+    ///
+    /// This function will remove a specific statement from the knowledge base. In addition, it will
+    /// recursively chain logic to remove other statements that were dependent on the given statement
+    ///
+    ///  # Example
+    ///
+    /// ```
+    /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
+    /// if let Some(fact) = kb.create_fact("fact: (isa square rectangle);") {
+    ///     kb.retract(&fact);
+    /// }
+    /// ```
     pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         match statement.to_fact() {
             Some(fact) => {
@@ -271,6 +407,15 @@ impl KnowledgeBase {
     }
 
     /// Ask if a specific fact can be proven by the knowledge base
+    ///
+    ///  # Example
+    ///
+    /// ```
+    /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
+    /// if let Some(fact) = kb.create_fact("fact: (isa square rectangle);") {
+    ///     kb.ask(&fact);
+    /// }
+    /// ```
     pub fn ask(&self, fact: &Fact) -> Result<bool, String> {
         if self.contains_fact(fact) {
             return Ok(true);
@@ -278,6 +423,8 @@ impl KnowledgeBase {
         Ok(false)
     }
 
+    // internal method to add a fact to the knowledge base
+    // used within the forward chaining algorithm
     fn insert_fact(&mut self, fact: Fact) -> Rc<Fact> {
         let fact_ref = Rc::new(fact);
         self.facts.push(fact_ref.clone());
@@ -302,6 +449,7 @@ impl KnowledgeBase {
         fact_ref
     }
 
+    // checks whether fact already exists in knowledge base, and calls internal insert function
     fn add_fact(&mut self, fact: Fact) -> Result<Rc<Fact>, String> {
         if self.contains_fact(&fact) {
             return Err(String::from("fact already in kb"));
@@ -310,6 +458,8 @@ impl KnowledgeBase {
         Ok(self.insert_fact(fact))
     }
 
+    // attempts to find and remove a fact
+    // returns an error if the fact cannot be found
     fn remove_fact(&mut self, fact: &Fact) -> Result<(), String> {
         let mut fact_to_remove = None;
 
@@ -368,6 +518,7 @@ impl KnowledgeBase {
         rule_ref
     }
 
+    // checks whether rule already exists in knowledge base, and calls internal insert function
     fn add_rule(&mut self, rule: Rule) -> Result<Rc<Rule>, String> {
         if self.contains_rule(&rule) {
             return Err(String::from("rule already in kb"));
@@ -375,6 +526,8 @@ impl KnowledgeBase {
         Ok(self.insert_rule(rule))
     }
 
+    // attempts to find and remove a rule
+    // returns an error if the rule cannot be found
     fn remove_rule(&mut self, rule: &Rule) -> Result<(), String> {
         let mut rule_to_remove = None;
 
@@ -415,14 +568,17 @@ impl KnowledgeBase {
         }
     }
 
+    // checks if given fact is in knowledge base
     fn contains_fact(&self, fact: &Fact) -> bool {
         self.facts.iter().fold(false, |acc, f| acc || &**f == fact)
     }
 
+    // checks if given rule is in knowledge base
     fn contains_rule(&self, rule: &Rule) -> bool {
         self.rules.iter().fold(false, |acc, r| acc || &**r == rule)
     }
 
+    // function that implements inference by forward chaining
     pub fn infer(&mut self, mut fact: Rc<Fact>, rule: Rc<Rule>) {
         // Inference by Forward Chaining
         if rule.lhs.len() == 1 {
@@ -506,6 +662,19 @@ impl KnowledgeBase {
     }
 
     /// Query a knowledge base to find all possible bindings to variables in the fact
+    ///
+    /// The given fact should contain at least one variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let kb = KnowledgeBase::from_file("initial_state.kb");
+    ///
+    /// if let Some(fact) = kb.create_fact("fact: (isa ?object rectangle);") {
+    ///     let result = kb.query(&fact);
+    ///     // result is now a vector of all bindings found in the knowledge base.
+    /// }
+    /// ```
     pub fn query(&self, f: &Fact) -> Vec<QueryBinding> {
         let mut query_indices = vec![];
 
@@ -528,6 +697,7 @@ impl KnowledgeBase {
         bindings
     }
 
+    // returns all of the facts that match the query bindings of the given fact
     fn get_query_facts(&self, f: &Fact) -> Vec<Rc<Fact>> {
         match self.facts_map.get(&f.pred) {
             Some(arg_list) => {
