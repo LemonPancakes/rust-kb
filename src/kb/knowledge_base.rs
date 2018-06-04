@@ -499,6 +499,10 @@ impl KnowledgeBase {
 
     // checks whether fact already exists in knowledge base, and calls internal insert function
     fn add_fact(&mut self, fact: Fact) -> Result<Rc<Fact>, String> {
+        if fact.contains_variable() {
+            return Err(String::from("Cannot assert fact with bound variables"));
+        }
+
         if self.contains_fact(&fact) {
             return Err(String::from("fact already in kb"));
         }
@@ -509,6 +513,10 @@ impl KnowledgeBase {
     // attempts to find and remove a fact
     // returns an error if the fact cannot be found
     fn remove_fact(&mut self, fact: &Fact) -> Result<(), String> {
+        if fact.contains_variable() {
+            return Err(String::from("Cannot retract fact with bound variables"));
+        }
+
         let mut fact_to_remove = None;
 
         for i in 0..self.facts.len() {
@@ -624,6 +632,26 @@ impl KnowledgeBase {
     // checks if given rule is in knowledge base
     fn contains_rule(&self, rule: &Rule) -> bool {
         self.rules.iter().fold(false, |acc, r| acc || &**r == rule)
+    }
+
+    // Checks if given fact is in knowledge base
+    // ignores all complex, implementation specific fields
+    // This should be used to check against user created fields.
+    fn contains_user_fact(&self, fact: &Fact) -> bool {
+        self.facts.iter().fold(false, |acc, f| {
+            let temp = &**f;
+            acc || (temp.pred == fact.pred && temp.args == fact.args)
+        })
+    }
+
+    // Checks if given rule is in knowledge base
+    // ignores all complex, implementation specific fields
+    // This should be used to check against user created fields.
+    fn contains_user_rule(&self, rule: &Rule) -> bool {
+        self.rules.iter().fold(false, |acc, r| {
+            let temp = &**r;
+            acc || (temp.lhs == rule.lhs && temp.rhs == rule.rhs)
+        })
     }
 
     // function that implements inference by forward chaining
@@ -871,9 +899,9 @@ mod inference_tests {
                 }
 
                 if let Ok(result_fact) = kb.create_fact("fact: (cool Bob);") {
-                    assert_eq!(kb.contains_fact(&new_fact), true);
-                    assert_eq!(kb.contains_rule(&new_rule), true);
-                    assert_eq!(kb.contains_fact(&result_fact), true);
+                    assert_eq!(kb.contains_user_fact(&new_fact), true);
+                    assert_eq!(kb.contains_user_rule(&new_rule), true);
+                    assert_eq!(kb.contains_user_fact(&result_fact), true);
                 }
             }
         }
@@ -895,9 +923,9 @@ mod inference_tests {
                 }
 
                 if let Ok(result_rule) = kb.create_rule("rule: ((was Bob ?y)) -> (cool ?y);") {
-                    assert_eq!(kb.contains_fact(&new_fact), true);
-                    assert_eq!(kb.contains_rule(&new_rule), true);
-                    assert_eq!(kb.contains_rule(&result_rule), true);
+                    assert_eq!(kb.contains_user_fact(&new_fact), true);
+                    assert_eq!(kb.contains_user_rule(&new_rule), true);
+                    assert_eq!(kb.contains_user_rule(&result_rule), true);
                 }
             }
         }
