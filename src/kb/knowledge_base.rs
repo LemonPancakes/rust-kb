@@ -627,7 +627,7 @@ impl KnowledgeBase {
     }
 
     // function that implements inference by forward chaining
-    pub fn infer(&mut self, mut fact: Rc<Fact>, rule: Rc<Rule>) {
+    fn infer(&mut self, mut fact: Rc<Fact>, rule: Rc<Rule>) {
         // Inference by Forward Chaining
         if rule.lhs.len() == 1 {
             let lhs = &rule.lhs[0];
@@ -676,7 +676,7 @@ impl KnowledgeBase {
         Ok(bindings)
     }
 
-    pub fn apply_bindings(
+    fn apply_bindings(
         &self,
         fact: &Fact,
         support: Option<(Rc<Fact>, Rc<Rule>)>,
