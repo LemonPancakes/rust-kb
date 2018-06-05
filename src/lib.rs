@@ -455,6 +455,8 @@ impl KnowledgeBase {
     /// This function will remove a specific statement from the knowledge base. In addition, it will
     /// recursively chain logic to remove other statements that were dependent on the given statement
     ///
+    /// Statements that still have support from other Fact/Rule pairs will error on retract
+    ///
     ///  # Example
     ///
     /// ```
@@ -470,10 +472,20 @@ impl KnowledgeBase {
     /// ```
     pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         match statement.to_fact() {
-            Some(fact) => self.remove_fact(&fact),
+            Some(fact) => {
+                if fact.supported_by.is_empty() {
+                    return self.remove_fact(&fact);
+                } else {
+                    return Err(String::from("Fact cannot be removed because it's supported"));
+                }
+            },
             None => {
                 let rule = statement.to_rule().unwrap();
-                self.remove_rule(&rule)
+                if rule.supported_by.is_empty() {
+                    return self.remove_rule(&rule);
+                } else {
+                    return Err(String::from("Rule cannot be removed because it's supported"));
+                }
             }
         }
     }
