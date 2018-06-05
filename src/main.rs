@@ -50,7 +50,30 @@ fn main() {
                         }
                     },
                     4 => {
-                        println!("{:?}\n", kb.query(&fact));
+                        let query_result = kb.query(&fact);
+                        if query_result.is_empty() {
+                            println!("No bindings found\n");
+                        } else {
+                            let mut crossbar = "-".to_string();
+                            for _ in 0..query_result[0].len() {
+                                crossbar.push_str("-----------");
+                            }
+                            println!("{}", crossbar);
+                            for variable in &query_result[0] {
+                                print!("|{:^10}", (*variable.0).to_string());
+                            }
+                            println!("|");
+                            println!("{}", crossbar);
+
+                            for binding in query_result {
+                                for variable_tuple in binding {
+                                    print!("|{:^10}", (*variable_tuple.1).to_string());
+                                }
+                                println!("|");
+                            }
+
+                            println!("{}", crossbar);
+                        }
                     },
                     _ => {}
                 }
