@@ -584,7 +584,6 @@ impl KnowledgeBase {
 
                 // retract facts supported by this fact
                 for f in &self.facts.clone() {
-                    println!("fact being supported: {:?}\n\n", f);
                     for i in 0..f.supported_by.len() {
                         if fact_reference == f.supported_by[i].0 {
                             self.remove_fact(&f).is_ok();
