@@ -1,6 +1,6 @@
 | master | develop | docs |
 |:-:|:-:|:-:|
-| [![Build Status (master)](https://travis-ci.org/LemonPancakes/rust-kb.svg?branch=master)](https://travis-ci.org/LemonPancakes/rust-kb) | [![Build Status (develop)](https://travis-ci.org/LemonPancakes/rust-kb.svg?branch=develop)](https://travis-ci.org/LemonPancakes/rust-kb) | [![GitHub version](https://img.shields.io/badge/version-v0.1.0-blue.svg)](https://github.com/LemonPancakes/rust-kb) |
+| [![Build Status (master)](https://travis-ci.org/LemonPancakes/rust-kb.svg?branch=master)](https://travis-ci.org/LemonPancakes/rust-kb) | [![Build Status (develop)](https://travis-ci.org/LemonPancakes/rust-kb.svg?branch=develop)](https://travis-ci.org/LemonPancakes/rust-kb) | [![GitHub version](https://img.shields.io/badge/version-v0.1.0-blue.svg)](https://lemonpancakes.github.io/rust-kb/) |
 
 # Rust-KB
 
