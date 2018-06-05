@@ -570,11 +570,12 @@ impl KnowledgeBase {
 
             Some(fact_reference) => {
                 {
-                    let mut args_vec = self.facts_map.get_mut(&fact_reference.pred).unwrap(); //.or_insert(Vec::new());
+                    // A found fact must be in args vec
+                    let mut args_vec = self.facts_map.get_mut(&fact_reference.pred).unwrap();
 
                     for j in 0..args_vec.len() {
-                        let mut arg_list = args_vec[j].get_mut(&fact_reference.args[j]).unwrap(); //.entry(fact_reference.args[j].clone()).or_insert(Vec::new());
-                                                                                                  //arg_list.push(fact_reference.clone());
+                        // A found fact must have an entry for each argument
+                        let mut arg_list = args_vec[j].get_mut(&fact_reference.args[j]).unwrap();
 
                         let index = arg_list.iter().position(|x| *x == fact_reference).unwrap();
                         arg_list.remove(index);
