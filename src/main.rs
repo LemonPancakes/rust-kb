@@ -1,8 +1,8 @@
 extern crate rust_kb;
 
 use rust_kb::KnowledgeBase;
-use std::io::{stdin, stdout, Write, BufRead, BufReader};
 use std::env;
+use std::io::{stdin, stdout, BufRead, BufReader, Write};
 
 const HELP: &str = "Options:\n Assert Statement 'assert: (isa this example)'\n Retract Statement 'retract: (isa this example)'\n Ask Fact 'ask: (isa this example)'\n Query Fact 'query: (isa this example)'\n Erase entire knowledge base 'new'\n Help 'h'\n Quit 'q'\n";
 
@@ -13,7 +13,10 @@ fn main() {
             println!("Successfully parsed knowledge base from '{}'.", &args[1]);
             kb
         } else {
-            println!("Failed to parse knowledge base from '{}'. Quitting.", &args[1]);
+            println!(
+                "Failed to parse knowledge base from '{}'. Quitting.",
+                &args[1]
+            );
             return;
         }
     } else {
@@ -29,7 +32,11 @@ fn main() {
     while let Some(Ok(line)) = lines.next() {
         if let Some(index) = line.find(":") {
             let command = &line[..index];
-            let statement = if line.len() > index + 2 { &line[(index + 2)..] } else { "" };
+            let statement = if line.len() > index + 2 {
+                &line[(index + 2)..]
+            } else {
+                ""
+            };
             let fact_attempt = "fact: ".to_string() + &statement + ";";
             let rule_attempt = "rule: ".to_string() + &statement + ";";
 
@@ -37,37 +44,37 @@ fn main() {
                 "assert" => {
                     if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(_) = kb.assert(fact) {
-                           println!("Asserted Fact '{}'.", &statement);
-                       } else {
-                           println!("Assert failed, probably because this fact has already been asserted.");
-                       }
+                            println!("Asserted Fact '{}'.", &statement);
+                        } else {
+                            println!("Assert failed, probably because this fact has already been asserted.");
+                        }
                     } else if let Ok(rule) = kb.create_rule(&rule_attempt) {
                         if let Ok(_) = kb.assert(rule) {
-                           println!("Asserted Rule '{}'.", &statement);
-                       } else {
-                           println!("Assert failed, probably because this rule has already been asserted.");
-                       }
+                            println!("Asserted Rule '{}'.", &statement);
+                        } else {
+                            println!("Assert failed, probably because this rule has already been asserted.");
+                        }
                     } else {
                         println!("Failed to parse statement.");
                     }
-                },
+                }
                 "retract" => {
                     if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(_) = kb.retract(fact) {
-                           println!("Retracted Fact '{}'.", &statement);
-                       } else {
-                           println!("Retract failed, either because Fact does not exist or is supported by a Rule.");
-                       }
-                   } else if let Ok(rule) = kb.create_rule(&rule_attempt) {
+                            println!("Retracted Fact '{}'.", &statement);
+                        } else {
+                            println!("Retract failed, either because Fact does not exist or is supported by a Rule.");
+                        }
+                    } else if let Ok(rule) = kb.create_rule(&rule_attempt) {
                         if let Ok(_) = kb.retract(rule) {
-                           println!("Retracted Rule '{}'.", &statement);
-                       } else {
-                           println!("Retract failed, probably because Rule does not exist.");
-                       }
-                   } else {
-                       println!("Failed to parse statement.");
-                   }
-                },
+                            println!("Retracted Rule '{}'.", &statement);
+                        } else {
+                            println!("Retract failed, probably because Rule does not exist.");
+                        }
+                    } else {
+                        println!("Failed to parse statement.");
+                    }
+                }
                 "ask" => {
                     if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(res) = kb.ask(&fact) {
@@ -78,7 +85,7 @@ fn main() {
                     } else {
                         println!("Failed to parse statement.");
                     }
-                },
+                }
                 "query" => {
                     if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         let query_result = kb.query(&fact);
@@ -111,8 +118,8 @@ fn main() {
                     } else {
                         println!("Failed to parse statement.");
                     }
-                },
-                _ => println!("'{}' is an unrecognized command.", command)
+                }
+                _ => println!("'{}' is an unrecognized command.", command),
             }
         } else if line == "new" {
             print!("Are you sure (y/n)? ");
@@ -122,7 +129,7 @@ fn main() {
                     "y" | "Y" => {
                         kb = KnowledgeBase::new();
                         println!("Knowledge Base erased.");
-                    },
+                    }
                     _ => {
                         println!("Canceled.");
                     }

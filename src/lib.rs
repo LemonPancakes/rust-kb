@@ -472,15 +472,19 @@ impl KnowledgeBase {
                 if fact.supported_by.is_empty() {
                     return self.remove_fact(&fact);
                 } else {
-                    return Err(String::from("Fact cannot be removed because it's supported"));
+                    return Err(String::from(
+                        "Fact cannot be removed because it's supported",
+                    ));
                 }
-            },
+            }
             None => {
                 let rule = statement.to_rule().unwrap();
                 if rule.supported_by.is_empty() {
                     return self.remove_rule(&rule);
                 } else {
-                    return Err(String::from("Rule cannot be removed because it's supported"));
+                    return Err(String::from(
+                        "Rule cannot be removed because it's supported",
+                    ));
                 }
             }
         }
@@ -718,8 +722,8 @@ impl KnowledgeBase {
                             if a2.clone() != old_val {
                                 return Err("bind failed".to_string());
                             }
-                        },
-                        None => continue
+                        }
+                        None => continue,
                     }
                 } else if a2.is_var() && !a1.is_var() {
                     match bindings.insert(a2.clone(), a1.clone()) {
@@ -727,8 +731,8 @@ impl KnowledgeBase {
                             if a1.clone() != old_val {
                                 return Err("bind failed".to_string());
                             }
-                        },
-                        None => continue
+                        }
+                        None => continue,
                     }
                 } else {
                     return Err("bind failed".to_string());
@@ -781,10 +785,17 @@ impl KnowledgeBase {
     /// }
     /// ```
     pub fn query(&self, f: &Fact) -> Vec<QueryBinding> {
-        self.get_query_facts(f).into_iter().map(|x| self.try_bind(&x,f))
-                                           .filter(|x| x.is_ok())
-                                           .map(|x| x.unwrap().iter().map(|t| (t.0.clone(),t.1.clone())).collect())
-                                           .collect()
+        self.get_query_facts(f)
+            .into_iter()
+            .map(|x| self.try_bind(&x, f))
+            .filter(|x| x.is_ok())
+            .map(|x| {
+                x.unwrap()
+                    .iter()
+                    .map(|t| (t.0.clone(), t.1.clone()))
+                    .collect()
+            })
+            .collect()
     }
 
     // returns all of the facts that match the query bindings of the given fact
