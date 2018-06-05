@@ -29,7 +29,7 @@ fn main() {
     while let Some(Ok(line)) = lines.next() {
         if let Some(index) = line.find(":") {
             let command = &line[..index];
-            let statement = &line[(index + 2)..];
+            let statement = if line.len() > index + 2 { &line[(index + 2)..] } else { "" };
             let fact_attempt = "fact: ".to_string() + &statement + ";";
             let rule_attempt = "rule: ".to_string() + &statement + ";";
 
@@ -38,11 +38,15 @@ fn main() {
                     if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(_) = kb.assert(fact) {
                            println!("Asserted Fact '{}'.", &statement);
-                        }
+                       } else {
+                           println!("Assert failed, probably because this fact has already been asserted.");
+                       }
                     } else if let Ok(rule) = kb.create_rule(&rule_attempt) {
                         if let Ok(_) = kb.assert(rule) {
                            println!("Asserted Rule '{}'.", &statement);
-                        }
+                       } else {
+                           println!("Assert failed, probably because this rule has already been asserted.");
+                       }
                     } else {
                         println!("Failed to parse statement.");
                     }
