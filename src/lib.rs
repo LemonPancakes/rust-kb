@@ -272,11 +272,11 @@ impl KnowledgeBase {
         };
 
         for fact in facts {
-            kb.insert_fact(fact);
+            kb.assert(fact);
         }
 
         for rule in rules {
-            kb.insert_rule(rule);
+            kb.assert(rule);
         }
 
         kb
