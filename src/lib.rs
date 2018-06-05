@@ -712,7 +712,6 @@ impl KnowledgeBase {
         for pairs in f1.args.iter().zip(f2.args.iter()) {
             let (a1, a2) = pairs;
             if a1 != a2 {
-<<<<<<< HEAD
                 if a1.is_var() && !a2.is_var() {
                     match bindings.insert(a1.clone(), a2.clone()) {
                         Some(old_val) => {
@@ -731,20 +730,6 @@ impl KnowledgeBase {
                         },
                         None => continue
                     }
-=======
-                if a1.is_var() && !a2.is_var() || a2.is_var() && !a1.is_var() {
-                    let curr_var = if a1.is_var() {a1.clone()} else {a2.clone()};
-                    let curr_bind = if !a1.is_var() {a1.clone()} else {a2.clone()};
-                    for (bound_var,binding_symbol) in &bindings {
-                        if *bound_var == curr_var && *binding_symbol != curr_bind {
-                            return Err("bind failed".to_string());
-                        }
-                    }
-                    bindings.insert(curr_var,curr_bind);
-
-                // Internal code invariants mean both facts cannot have variables
-                // So we are try to bind two non-variables
->>>>>>> 61d60b19c6a924d22c8a7e77f3a8a1850a613478
                 } else {
                     return Err("bind failed".to_string());
                 }
