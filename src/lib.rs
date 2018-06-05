@@ -131,7 +131,7 @@ pub struct Rule {
 
 impl Rule {
     /// Create a new rule from Facts
-    pub fn new(lhs: Vec<Fact>, rhs: Fact, supported_by: Vec<(Rc<Fact>, Rc<Rule>)>) -> Rule {
+    fn new(lhs: Vec<Fact>, rhs: Fact, supported_by: Vec<(Rc<Fact>, Rc<Rule>)>) -> Rule {
         let asserted = supported_by.is_empty();
         Rule {
             lhs,
@@ -146,7 +146,6 @@ impl Rule {
         let mut lhs = Vec::new();
 
         for parsed_raw_fact in &pr.lhs {
-            // TODO use Fact's from_raw fn instead
             let mut args = Vec::new();
             let mut pred = symbols.intern("");
             for (i, item) in parsed_raw_fact.iter().enumerate() {
@@ -159,7 +158,6 @@ impl Rule {
             lhs.push(Fact::new(pred, args, vec![]));
         }
 
-        // TODO use Fact's from_raw fn instead
         let mut args = Vec::new();
         let mut pred = symbols.intern("");
         for (i, item) in pr.rhs.iter().enumerate() {
@@ -232,7 +230,6 @@ pub struct KnowledgeBase {
 
 impl PartialEq for KnowledgeBase {
     fn eq(&self, other: &KnowledgeBase) -> bool {
-        //TODO Make this work as expected. AKA not depend on order of insertion
         self.facts == other.facts && self.rules == other.rules
     }
 }
@@ -425,7 +422,6 @@ impl KnowledgeBase {
     /// ```
     pub fn assert<T: Statement>(&mut self, statement: T) -> Result<Rc<Statement>, String> {
         match statement.to_fact() {
-            //TODO: Check if fact has bound variables
             Some(fact) => match self.add_fact(fact) {
                 Ok(rc_fact) => {
                     for rule in &self.rules.clone() {
@@ -686,7 +682,7 @@ impl KnowledgeBase {
             if let Ok(bindings) = self.try_bind(&fact, lhs) {
                 let new_fact =
                     self.apply_bindings(&rule.rhs, Some((fact.clone(), rule.clone())), &bindings);
-                if !self.has_var(&new_fact) {
+                if !new_fact.contains_variable() {
                     self.assert(new_fact).is_ok();
                 }
             }
@@ -716,10 +712,18 @@ impl KnowledgeBase {
         for pairs in f1.args.iter().zip(f2.args.iter()) {
             let (a1, a2) = pairs;
             if a1 != a2 {
-                if a1.is_var() && !a2.is_var() {
-                    bindings.insert(a1.clone(), a2.clone());
-                } else if a2.is_var() && !a1.is_var() {
-                    bindings.insert(a2.clone(), a1.clone());
+                if a1.is_var() && !a2.is_var() || a2.is_var() && !a1.is_var() {
+                    let curr_var = if a1.is_var() {a1.clone()} else {a2.clone()};
+                    let curr_bind = if !a1.is_var() {a1.clone()} else {a2.clone()};
+                    for (bound_var,binding_symbol) in &bindings {
+                        if *bound_var == curr_var && *binding_symbol != curr_bind {
+                            return Err("bind failed".to_string());
+                        }
+                    }
+                    bindings.insert(curr_var,curr_bind);
+
+                // Internal code invariants mean both facts cannot have variables
+                // So we are try to bind two non-variables
                 } else {
                     return Err("bind failed".to_string());
                 }
@@ -752,15 +756,6 @@ impl KnowledgeBase {
         }
     }
 
-    fn has_var(&self, fact: &Fact) -> bool {
-        for symbol in &fact.args {
-            if symbol.is_var() {
-                return true;
-            }
-        }
-        false
-    }
-
     /// Query a knowledge base to find all possible bindings to variables in the fact
     ///
     /// The given fact should contain at least one variable.
@@ -780,25 +775,10 @@ impl KnowledgeBase {
     /// }
     /// ```
     pub fn query(&self, f: &Fact) -> Vec<QueryBinding> {
-        let mut query_indices = vec![];
-
-        for i in 0..f.args.len() {
-            if f.args[i].is_var() {
-                query_indices.push(i);
-            }
-        }
-
-        let mut bindings = vec![];
-
-        for matching_fact in self.get_query_facts(f) {
-            let mut curr_binding = vec![];
-            for i in &query_indices {
-                curr_binding.push((f.args[*i].clone(), matching_fact.args[*i].clone()));
-            }
-            bindings.push(curr_binding);
-        }
-
-        bindings
+        self.get_query_facts(f).into_iter().map(|x| self.try_bind(&x,f))
+                                           .filter(|x| x.is_ok())
+                                           .map(|x| x.unwrap().iter().map(|t| (t.0.clone(),t.1.clone())).collect())
+                                           .collect()
     }
 
     // returns all of the facts that match the query bindings of the given fact
@@ -834,7 +814,7 @@ impl KnowledgeBase {
                             }
                         }
                     }
-                    return facts.iter().map({ |f| f.clone() }).collect();
+                    return facts.into_iter().collect();
                 }
             }
             None => {}
@@ -981,19 +961,6 @@ mod inference_tests {
                         )
                     );
                 }
-            }
-        }
-    }
-
-    #[test]
-    fn test_has_var() {
-        let mut kb = KnowledgeBase::new();
-
-        if let Ok(fact) = kb.create_fact("fact: (isa ?x boy);") {
-            assert_eq!(true, kb.has_var(&fact));
-
-            if let Ok(fact2) = kb.create_fact("fact: (isa Bob boy);") {
-                assert_eq!(false, kb.has_var(&fact2));
             }
         }
     }
