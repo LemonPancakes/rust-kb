@@ -50,13 +50,13 @@ fn main() {
                 "retract" => {
                     if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(_) = kb.retract(fact) {
-                           println!("Asserted Fact '{}'.", &statement);
+                           println!("Retracted Fact '{}'.", &statement);
                        } else {
                            println!("Retract failed, either because Fact does not exist or is supported by a Rule.");
                        }
                    } else if let Ok(rule) = kb.create_rule(&rule_attempt) {
                         if let Ok(_) = kb.retract(rule) {
-                           println!("Asserted Rule '{}'.", &statement);
+                           println!("Retracted Rule '{}'.", &statement);
                        } else {
                            println!("Retract failed, probably because Rule does not exist.");
                        }
