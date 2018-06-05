@@ -3,6 +3,7 @@ extern crate rust_kb;
 use rust_kb::KnowledgeBase;
 use std::io::{stdin, BufRead, BufReader};
 
+// TODO: use enum for options
 const MENU: &str = "Select an option (1-5):\n 1. Assert Statement\n 2. Retract Statement\n 3. Ask Fact\n 4. Query Fact\n 5. Quit";
 
 fn main() {
