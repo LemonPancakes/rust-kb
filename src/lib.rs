@@ -425,7 +425,6 @@ impl KnowledgeBase {
     /// ```
     pub fn assert<T: Statement>(&mut self, statement: T) -> Result<Rc<Statement>, String> {
         match statement.to_fact() {
-            //TODO: Check if fact has bound variables
             Some(fact) => match self.add_fact(fact) {
                 Ok(rc_fact) => {
                     for rule in &self.rules.clone() {
@@ -541,7 +540,7 @@ impl KnowledgeBase {
             return Err(String::from("Cannot assert fact with bound variables"));
         }
 
-        if self.contains_fact(&fact) {
+        if self.facts.contains(&Rc::new(fact.clone())) {
             return Err(String::from("fact already in kb"));
         }
 
@@ -717,9 +716,23 @@ impl KnowledgeBase {
             let (a1, a2) = pairs;
             if a1 != a2 {
                 if a1.is_var() && !a2.is_var() {
-                    bindings.insert(a1.clone(), a2.clone());
+                    match bindings.insert(a1.clone(), a2.clone()) {
+                        Some(old_val) => {
+                            if a2.clone() != old_val {
+                                return Err("bind failed".to_string());
+                            }
+                        },
+                        None => continue
+                    }
                 } else if a2.is_var() && !a1.is_var() {
-                    bindings.insert(a2.clone(), a1.clone());
+                    match bindings.insert(a2.clone(), a1.clone()) {
+                        Some(old_val) => {
+                            if a1.clone() != old_val {
+                                return Err("bind failed".to_string());
+                            }
+                        },
+                        None => continue
+                    }
                 } else {
                     return Err("bind failed".to_string());
                 }
