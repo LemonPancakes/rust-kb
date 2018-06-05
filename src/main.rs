@@ -2,12 +2,27 @@ extern crate rust_kb;
 
 use rust_kb::KnowledgeBase;
 use std::io::{stdin, BufRead, BufReader};
+use std::env;
 
 // TODO: use enum for options
 const MENU: &str = "Select an option (1-5):\n 1. Assert Statement\n 2. Retract Statement\n 3. Ask Fact\n 4. Query Fact\n 5. Quit";
 
 fn main() {
-    let mut kb = KnowledgeBase::new();
+    let args: Vec<String> = env::args().collect();
+    let mut kb = if args.len() == 2 {
+        if let Ok(kb) = KnowledgeBase::from_file(&args[1]) {
+            println!("Successfully parsed from file");
+            kb
+        } else {
+            println!("Failed to parse from file");
+            KnowledgeBase::new()
+        }
+    } else {
+        KnowledgeBase::new()
+    };
+    println!("KnowledgeBase Initiated\n");
+
+
     let mut selected_option: u32 = 0;
 
     let mut lines = BufReader::new(stdin()).lines();
