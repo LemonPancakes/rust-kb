@@ -344,10 +344,10 @@ impl KnowledgeBase {
     ///
     ///  # Example
     ///
-    /// ``` ignore,
+    /// ```
     /// use rust_kb::KnowledgeBase;
     ///
-    /// let mut kb = KnowledgeBase::from_file("initial_state.kb");
+    /// let mut kb = KnowledgeBase::from_file("test/test.kb");
     ///
     /// // The knowledge base now has all facts and rules from the file
     /// ```
