@@ -10,11 +10,11 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let mut kb = if args.len() == 2 {
         if let Ok(kb) = KnowledgeBase::from_file(&args[1]) {
-            println!("Successfully parsed from '{}'.", &args[1]);
+            println!("Successfully parsed knowledge base from '{}'.", &args[1]);
             kb
         } else {
-            println!("Failed to parse from file. Creating clean knowledge base instead.");
-            KnowledgeBase::new()
+            println!("Failed to parse knowledge base from '{}'. Quitting.", &args[1]);
+            return;
         }
     } else {
         KnowledgeBase::new()
