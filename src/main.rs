@@ -7,13 +7,12 @@ fn main() {
 
     if let Ok(fact) = kb.create_fact("fact: (isa box hello);") {
         match kb.assert(fact) {
-            Ok(_) => {},
-            Err(_) => {},
+            Ok(_) => {}
+            Err(_) => {}
         }
-
     }
 
     if let Ok(fact) = kb.create_fact("fact: (isa box hello);") {
-        println!("{:?}",kb.ask(&fact));
+        println!("{:?}", kb.ask(&fact));
     }
 }

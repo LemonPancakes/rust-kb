@@ -20,7 +20,8 @@ extern crate weak_table;
 mod parser;
 mod symbols;
 
-use parser::{parse_kb_from_file, parse_fact, parse_rule, ParsedFact, ParsedKnowledgeBase, ParsedRule};
+use parser::{parse_fact, parse_kb_from_file, parse_rule, ParsedFact, ParsedKnowledgeBase,
+             ParsedRule};
 use symbols::{Symbol, SymbolTable};
 
 use std::collections::{HashMap, HashSet};
@@ -214,7 +215,7 @@ impl Statement for Rule {
 type ArgumentHash = HashMap<Symbol, Vec<Rc<Fact>>>;
 
 // Type alias for a specific binding from one variable to one argument
-type QueryBinding = Vec<(Symbol,Symbol)>;
+type QueryBinding = Vec<(Symbol, Symbol)>;
 
 /// A data structure which can take in facts and rules, and respond to logical questions and queries
 ///
@@ -374,9 +375,9 @@ impl KnowledgeBase {
     ///     Err(_) => { /* Will not execute this branch, because of proper format */ },
     /// }
     /// ```
-    pub fn create_fact(&mut self,fact : &str) -> Result<Fact, String> {
+    pub fn create_fact(&mut self, fact: &str) -> Result<Fact, String> {
         let pf = parse_fact(fact.as_bytes())?;
-        Ok(Fact::from(&pf,&mut self.symbols))
+        Ok(Fact::from(&pf, &mut self.symbols))
     }
 
     /// Attempts to create a rule from a given string slice.
@@ -395,9 +396,9 @@ impl KnowledgeBase {
     ///     Err(_) => { /* Will not execute this branch, because of proper format */ },
     /// }
     /// ```
-    pub fn create_rule(&mut self,rule : &str) -> Result<Rule, String> {
+    pub fn create_rule(&mut self, rule: &str) -> Result<Rule, String> {
         let pr = parse_rule(rule.as_bytes())?;
-        Ok(Rule::from(&pr,&mut self.symbols))
+        Ok(Rule::from(&pr, &mut self.symbols))
     }
 
     #[inline]
@@ -469,9 +470,7 @@ impl KnowledgeBase {
     /// ```
     pub fn retract<T: Statement>(&mut self, statement: T) -> Result<(), String> {
         match statement.to_fact() {
-            Some(fact) => {
-                self.remove_fact(&fact)
-            }
+            Some(fact) => self.remove_fact(&fact),
             None => {
                 let rule = statement.to_rule().unwrap();
                 self.remove_rule(&rule)
@@ -563,7 +562,7 @@ impl KnowledgeBase {
 
                     for j in 0..args_vec.len() {
                         let mut arg_list = args_vec[j].get_mut(&fact_reference.args[j]).unwrap(); //.entry(fact_reference.args[j].clone()).or_insert(Vec::new());
-                        //arg_list.push(fact_reference.clone());
+                                                                                                  //arg_list.push(fact_reference.clone());
 
                         let index = arg_list.iter().position(|x| *x == fact_reference).unwrap();
                         arg_list.remove(index);
@@ -905,7 +904,6 @@ mod inference_tests {
             }
 
             if let Ok(new_rule) = kb.create_rule("rule: ((isa ?x boy)) -> (cool ?x);") {
-
                 match kb.assert(new_rule.clone()) {
                     Ok(_) => {}
                     Err(e) => println!("{}", e),
@@ -949,7 +947,6 @@ mod inference_tests {
         let mut kb = KnowledgeBase::new();
         if let Ok(fact1) = kb.create_fact("fact: (isa Bob boy);") {
             if let Ok(fact2) = kb.create_fact("fact: (isa ?x boy);") {
-
                 let bindings = match kb.try_bind(&fact1, &fact2) {
                     Ok(lst) => lst,
                     Err(e) => {
@@ -961,11 +958,15 @@ mod inference_tests {
                 assert!(bindings.contains_key(&kb.intern_string("?x")));
 
                 if let Ok(new_rule) = kb.create_rule("rule: ((isa ?x boy)) -> (cool ?x);") {
-                    let result_fact = kb.apply_bindings(&new_rule.rhs, None,&bindings);
+                    let result_fact = kb.apply_bindings(&new_rule.rhs, None, &bindings);
 
                     assert_eq!(
                         result_fact,
-                        Fact::new(kb.intern_string("cool"), vec![kb.intern_string("Bob")],vec![])
+                        Fact::new(
+                            kb.intern_string("cool"),
+                            vec![kb.intern_string("Bob")],
+                            vec![]
+                        )
                     );
                 }
             }
@@ -979,7 +980,7 @@ mod inference_tests {
         if let Ok(fact) = kb.create_fact("fact: (isa ?x boy);") {
             assert_eq!(true, kb.has_var(&fact));
 
-            if let Ok(fact2) =  kb.create_fact("fact: (isa Bob boy);") {
+            if let Ok(fact2) = kb.create_fact("fact: (isa Bob boy);") {
                 assert_eq!(false, kb.has_var(&fact2));
             }
         }
@@ -1059,18 +1060,19 @@ mod query_tests {
                 if let Ok(f3) = kb.create_fact("fact: (isa a c);") {
                     if let Ok(f4) = kb.create_fact("fact: (isa a d);") {
                         if let Ok(f5) = kb.create_fact("fact: (isa f g);") {
-                            let facts = vec![f1,f2,f3,f4,f5];
+                            let facts = vec![f1, f2, f3, f4, f5];
 
                             for fact in facts.iter() {
                                 match kb.assert(fact.clone()) {
-                                    Ok(_) => {},
-                                    Err(e) => println!("{}", e)
+                                    Ok(_) => {}
+                                    Err(e) => println!("{}", e),
                                 }
                             }
 
                             if let Ok(f) = kb.create_fact("fact: (isa f ?b);") {
                                 let a = kb.query(&f);
-                                let b: Vec<QueryBinding> = vec![vec![(kb.intern_string("?b"), kb.intern_string("g"))]];
+                                let b: Vec<QueryBinding> =
+                                    vec![vec![(kb.intern_string("?b"), kb.intern_string("g"))]];
 
                                 assert_eq!(a, b);
                             }
@@ -1093,8 +1095,8 @@ mod query_tests {
 
                             for fact in facts.iter() {
                                 match kb.assert(fact.clone()) {
-                                    Ok(_) => {},
-                                    Err(e) => println!("{}", e)
+                                    Ok(_) => {}
+                                    Err(e) => println!("{}", e),
                                 }
                             }
 
