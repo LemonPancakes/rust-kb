@@ -272,11 +272,11 @@ impl KnowledgeBase {
         };
 
         for fact in facts {
-            kb.assert(fact);
+            assert!(kb.assert(fact).is_ok());
         }
 
         for rule in rules {
-            kb.assert(rule);
+            assert!(kb.assert(rule).is_ok());
         }
 
         kb
