@@ -4,13 +4,13 @@ use rust_kb::KnowledgeBase;
 use std::io::{stdin, stdout, Write, BufRead, BufReader};
 use std::env;
 
-const HELP: &str = "Options:\n Assert Statement 'assert: (isa this example)'\n Retract Statement 'retract: (isa this example)'\n Ask Fact 'ask: (isa this example)'\n Query Fact 'query: (isa this example)'\n Erase entire knowledge base 'new'\n Help 'h'\n Quit 'q'";
+const HELP: &str = "Options:\n Assert Statement 'assert: (isa this example)'\n Retract Statement 'retract: (isa this example)'\n Ask Fact 'ask: (isa this example)'\n Query Fact 'query: (isa this example)'\n Erase entire knowledge base 'new'\n Help 'h'\n Quit 'q'\n";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut kb = if args.len() == 2 {
         if let Ok(kb) = KnowledgeBase::from_file(&args[1]) {
-            println!("Successfully parsed from file.");
+            println!("Successfully parsed from '{}'.", &args[1]);
             kb
         } else {
             println!("Failed to parse from file. Creating clean knowledge base instead.");
@@ -19,7 +19,7 @@ fn main() {
     } else {
         KnowledgeBase::new()
     };
-    println!("KnowledgeBase Initiated.\n");
+    println!("KnowledgeBase Instantiated.\n");
 
     let mut lines = BufReader::new(stdin()).lines();
 
@@ -138,7 +138,7 @@ fn flush() {
 }
 
 fn prompt() {
-    print!("> ");
+    print!("kb> ");
     flush();
 }
 
