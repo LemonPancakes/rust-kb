@@ -3,7 +3,7 @@ extern crate rust_kb;
 use rust_kb::KnowledgeBase;
 use std::io::{stdin, BufRead, BufReader};
 
-const MENU: &str = "Select an option (1-4):\n 1. Assert Statement\n 2. Retract Statement\n 3. Ask Fact\n 4. Query Fact";
+const MENU: &str = "Select an option (1-5):\n 1. Assert Statement\n 2. Retract Statement\n 3. Ask Fact\n 4. Query Fact\n 5. Quit";
 
 fn main() {
     let mut kb = KnowledgeBase::new();
@@ -20,8 +20,9 @@ fn main() {
                 "2" => 2,
                 "3" => 3,
                 "4" => 4,
+                "5" | "q" => return,
                 _ => {
-                    println!("Please select a valid option (1-4).\n");
+                    println!("Please select a valid option (1-5).\n");
                     0
                 }
             };
