@@ -1,76 +1,87 @@
 extern crate rust_kb;
 
 use rust_kb::KnowledgeBase;
-use std::io::{stdin, BufRead, BufReader};
+use std::io::{stdin, stdout, Write, BufRead, BufReader};
 use std::env;
 
-// TODO: use enum for options
-const MENU: &str = "Select an option (1-5):\n 1. Assert Statement\n 2. Retract Statement\n 3. Ask Fact\n 4. Query Fact\n 5. Quit";
+const HELP: &str = "Options:\n Assert Statement 'assert: (isa this example)'\n Retract Statement 'retract: (isa this example)'\n Ask Fact 'ask: (isa this example)'\n Query Fact 'query: (isa this example)'\n Erase entire knowledge base 'new'\n Help 'h'\n Quit 'q'";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut kb = if args.len() == 2 {
         if let Ok(kb) = KnowledgeBase::from_file(&args[1]) {
-            println!("Successfully parsed from file");
+            println!("Successfully parsed from file.");
             kb
         } else {
-            println!("Failed to parse from file");
+            println!("Failed to parse from file. Creating clean knowledge base instead.");
             KnowledgeBase::new()
         }
     } else {
         KnowledgeBase::new()
     };
-    println!("KnowledgeBase Initiated\n");
-
-
-    let mut selected_option: u32 = 0;
+    println!("KnowledgeBase Initiated.\n");
 
     let mut lines = BufReader::new(stdin()).lines();
 
-    println!("{}", MENU);
+    help();
+    prompt();
 
     while let Some(Ok(line)) = lines.next() {
-        if selected_option == 0 {
-            selected_option = match line.as_ref() {
-                "1" => 1,
-                "2" => 2,
-                "3" => 3,
-                "4" => 4,
-                "5" | "q" => return,
-                _ => {
-                    println!("Please select a valid option (1-5).\n");
-                    0
-                }
-            };
+        if let Some(index) = line.find(":") {
+            let command = &line[..index];
+            let statement = &line[(index + 2)..];
+            let fact_attempt = "fact: ".to_string() + &statement + ";";
+            let rule_attempt = "rule: ".to_string() + &statement + ";";
 
-            if selected_option != 0 {
-                println!("Enter statement (rule or fact):");
-            }
-        } else {
-            if let Ok(fact) = kb.create_fact(&("fact: ".to_string() + &line.clone() + ";")) {
-                match selected_option {
-                    1 => {
+            match command.as_ref() {
+                "assert" => {
+                    if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(_) = kb.assert(fact) {
-                            println!("Asserted Fact to KB\n");
+                           println!("Asserted Fact '{}'.", &statement);
                         }
-                    },
-                    2 => {
+                    } else if let Ok(rule) = kb.create_rule(&rule_attempt) {
+                        if let Ok(_) = kb.assert(rule) {
+                           println!("Asserted Rule '{}'.", &statement);
+                        }
+                    } else {
+                        println!("Failed to parse statement.");
+                    }
+                },
+                "retract" => {
+                    if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(_) = kb.retract(fact) {
-                            println!("Retracted Fact from KB\n");
-                        } else {
-                            println!("Retract failed, either because Fact does not exist or is supported by a Rule\n");
-                        }
-                    },
-                    3 => {
+                           println!("Asserted Fact '{}'.", &statement);
+                       } else {
+                           println!("Retract failed, either because Fact does not exist or is supported by a Rule.");
+                       }
+                   } else if let Ok(rule) = kb.create_rule(&rule_attempt) {
+                        if let Ok(_) = kb.retract(rule) {
+                           println!("Asserted Rule '{}'.", &statement);
+                       } else {
+                           println!("Retract failed, probably because Rule does not exist.");
+                       }
+                   } else {
+                       println!("Failed to parse statement.");
+                   }
+                },
+                "ask" => {
+                    if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         if let Ok(res) = kb.ask(&fact) {
-                            println!("{}\n", res);
+                            println!("{}", res.to_string().to_uppercase());
                         }
-                    },
-                    4 => {
+                    } else if let Ok(_) = kb.create_rule(&rule_attempt) {
+                        println!("Ask can only accept a Fact.");
+                    } else {
+                        println!("Failed to parse statement.");
+                    }
+                },
+                "query" => {
+                    if let Ok(fact) = kb.create_fact(&fact_attempt) {
                         let query_result = kb.query(&fact);
                         if query_result.is_empty() {
-                            println!("No bindings found\n");
+                            println!("No results found.");
                         } else {
+                            println!("Query results:");
                             let mut crossbar = "-".to_string();
                             for _ in 0..query_result[0].len() {
                                 crossbar.push_str("-----------");
@@ -91,36 +102,46 @@ fn main() {
 
                             println!("{}", crossbar);
                         }
-                    },
-                    _ => {}
-                }
-
-            } else if let Ok(rule) = kb.create_rule(&("rule: ".to_string() + &line.clone() + ";")) {
-                match selected_option {
-                    1 => {
-                        if let Ok(_) = kb.assert(rule) {
-                            println!("Asserted Rule to KB\n");
-                        }
-                    },
-                    2 => {
-                        if let Ok(_) = kb.retract(rule) {
-                            println!("Retracted Rule from KB\n");
-                        } else {
-                            println!("Retract failed, probably because Rule does not exist\n");
-                        }
-                    },
-                    _ => println!("Cannot Ask or Query a Rule\n")
-                }
-            } else {
-                println!("Failed to parse statement. Try again?\n");
+                    } else if let Ok(_) = kb.create_rule(&rule_attempt) {
+                        println!("Query can only accept a Fact.");
+                    } else {
+                        println!("Failed to parse statement.");
+                    }
+                },
+                _ => println!("'{}' is an unrecognized command.", command)
             }
-
-
-            selected_option = 0;
-            println!("{}", MENU);
+        } else if line == "new" {
+            print!("Are you sure (y/n)? ");
+            flush();
+            if let Some(Ok(response)) = lines.next() {
+                match response.as_ref() {
+                    "y" | "Y" => {
+                        kb = KnowledgeBase::new();
+                        println!("Knowledge Base erased.");
+                    },
+                    _ => {
+                        println!("Canceled.");
+                    }
+                }
+            }
+        } else if line == "h" {
+            help();
+        } else if line == "q" {
+            return;
         }
-
-
-
+        prompt();
     }
+}
+
+fn flush() {
+    stdout().flush().unwrap();
+}
+
+fn prompt() {
+    print!("> ");
+    flush();
+}
+
+fn help() {
+    println!("{}", HELP);
 }
