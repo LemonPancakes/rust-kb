@@ -6,6 +6,8 @@ use weak_table::WeakHashSet;
 pub struct Symbol(Rc<str>);
 
 impl Symbol {
+    // Differentiates between variables and normal statements
+    #[inline]
     pub fn is_var(&self) -> bool {
         &self.0[..1] == "?"
     }
@@ -34,6 +36,8 @@ impl SymbolTable {
         Self::default()
     }
 
+    // Returns a reference counted pointer for a given string slice
+    // This function assumes the string slice is a properly formatted argument
     pub fn intern(&mut self, name: &str) -> Symbol {
         if let Some(rc) = self.0.get(name) {
             Symbol(rc)

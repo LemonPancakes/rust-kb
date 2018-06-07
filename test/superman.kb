@@ -1,0 +1,7 @@
+kb {
+  fact: (ishero dude)
+  fact: (wears dude cape)
+  fact: (flies dude)
+
+  rule: ((ishero ?x) (wears ?x cape) (flies ?x)) -> (is ?x superman)
+}

@@ -17,8 +17,8 @@ impl ParsedKnowledgeBase {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ParsedFact {
-    pub pred: String,      // TODO Rc<Predicate> (maybe?)
-    pub args: Vec<String>, // TODO Vec<Rc<Argument>> (maybe?)
+    pub pred: String,
+    pub args: Vec<String>,
 }
 
 impl ParsedFact {
@@ -48,6 +48,20 @@ pub fn parse_kb_from_file(filename: &str) -> Result<ParsedKnowledgeBase, String>
     }
 }
 
+pub fn parse_fact(f: &[u8]) -> Result<ParsedFact, String> {
+    match fact(f) {
+        Ok(tuple) => Ok(tuple.1),
+        Err(_) => Err(String::from("Failed to parse fact from string")),
+    }
+}
+
+pub fn parse_rule(r: &[u8]) -> Result<ParsedRule, String> {
+    match rule(r) {
+        Ok(tuple) => Ok(tuple.1),
+        Err(_) => Err(String::from("Failed to parse rule from string")),
+    }
+}
+
 named!(
     name<&[u8]>,
     recognize!(pair!(
@@ -69,7 +83,7 @@ named!(fact<&[u8], ParsedFact>,
         tag!("fact:") >>
         tag!("(") >>
         pred: alpha >>
-        args: many1!(map!(name, |c| String::from_utf8(c.to_vec()).unwrap())) >>
+        args: many1!(map!(alt!(name | var), |c| String::from_utf8(c.to_vec()).unwrap())) >>
         tag!(")") >>
         (ParsedFact::new(String::from_utf8(pred.to_vec()).unwrap(), args))
     ))
@@ -96,7 +110,7 @@ named!(rule<&[u8], ParsedRule>,
     ))
 );
 
-named!(pub kb<&[u8], ParsedKnowledgeBase>,
+named!(kb<&[u8], ParsedKnowledgeBase>,
     ws!(do_parse!(
         tag!("kb") >>
         tag!("{") >>
