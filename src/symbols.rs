@@ -2,20 +2,49 @@ use std::ops::Deref;
 use std::rc::{Rc, Weak};
 use weak_table::WeakHashSet;
 
-#[derive(Clone, Debug, Hash)]
-pub struct Symbol(Rc<str>);
+#[derive(Debug, Clone, Hash)]
+pub enum Symbol {
+    Constant(Rc<str>),
+    Variable(Rc<str>),
+}
 
 impl Symbol {
     // Differentiates between variables and normal statements
-    #[inline]
     pub fn is_var(&self) -> bool {
-        &self.0[..1] == "?"
+        match self {
+            Symbol::Variable(_) => {true},
+            Symbol::Constant(_) => {false}
+        }
     }
 }
 
 impl PartialEq for Symbol {
     fn eq(&self, other: &Symbol) -> bool {
-        self.0.as_ptr() == other.0.as_ptr()
+        match self {
+            Symbol::Constant(rc_1) => {
+                match other {
+                    Symbol::Constant(rc_2) => {
+                        rc_1.as_ptr() == rc_2.as_ptr()
+                    },
+
+                    Symbol::Variable(_) => {
+                        false
+                    }
+                }
+            },
+
+            Symbol::Variable(rc_1) => {
+                match other {
+                    Symbol::Constant(_) => {
+                        false
+                    },
+
+                    Symbol::Variable(rc_2) => {
+                        rc_1.as_ptr() == rc_2.as_ptr()
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -24,7 +53,15 @@ impl Eq for Symbol {}
 impl Deref for Symbol {
     type Target = str;
     fn deref(&self) -> &str {
-        &self.0
+        match self {
+            Symbol::Constant(rc) => {
+                &rc
+            },
+
+            Symbol::Variable(rc) => {
+                &rc
+            }
+        }
     }
 }
 
@@ -40,11 +77,23 @@ impl SymbolTable {
     // This function assumes the string slice is a properly formatted argument
     pub fn intern(&mut self, name: &str) -> Symbol {
         if let Some(rc) = self.0.get(name) {
-            Symbol(rc)
+            SymbolTable::create_symbol(rc)
         } else {
             let rc = Rc::<str>::from(name);
             self.0.insert(Rc::clone(&rc));
-            Symbol(rc)
+            SymbolTable::create_symbol(rc)
+        }
+    }
+
+    fn create_symbol(rc : Rc<str>) -> Symbol {
+        if rc.len() == 0 {
+            return Symbol::Constant(rc);
+        }
+
+        if &rc[..1] == "?" {
+            Symbol::Variable(rc)
+        } else {
+            Symbol::Constant(rc)
         }
     }
 }
