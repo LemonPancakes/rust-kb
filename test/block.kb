@@ -1,13 +1,12 @@
-kb {
-  fact: (isa a block)
-  fact: (isa b block)
-  fact: (isa c block)
-  fact: (isa d block)
+isa(a, block).
+isa(b, block).
+isa(c, block).
+isa(d, block).
 
-  fact: (on a b)
-  fact: (on b c)
-  fact: (on c d)
+on(a, b).
+on(b, c).
+on(c, d).
 
-  rule: ((on ?x ?y)) -> (above ?x ?y)
-  rule: ((above ?x ?y) (on ?y ?z)) -> (above ?x ?z)
-}
+above(?x, ?y) :- on(?x, ?y).
+above(?x, ?z) :- above(?x, ?y), on(?y, ?z).
+.

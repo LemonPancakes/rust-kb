@@ -1,6 +1,5 @@
-kb {
-  fact: (isa cube box)
-  fact: (isa box container)
+isa(cube, box).
+isa(box, container).
 
-  rule: ((inst ?x ?y) (isa ?y ?z)) -> (inst ?x ?z)
-}
+inst(?x, ?z) :- inst(?x, ?y), isa(?y, ?z).
+.
