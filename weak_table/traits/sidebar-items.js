@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["WeakElement","Interface for elements that can be stored in weak hash tables."],["WeakKey","Interface for elements that can act as keys in weak hash tables."]]});
